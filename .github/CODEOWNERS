@@ -1,0 +1,18 @@
+# Code owners for the Gantter repo
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+*                   @khalifa168
+
+# The planner app
+planner.html        @khalifa168
+index.html          @khalifa168
+
+# Project data files
+*.json              @khalifa168
+
+# Docs
+*.md                @khalifa168
+
+# CI / workflows / repo config
+.github/            @khalifa168
