@@ -1,0 +1,2253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Project Planner — Card Squad</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+:root{
+  --bg:#2b2b2b;--bg2:#333;--bg3:#3a3a3a;--bg4:#404040;--bg5:#4a4a4a;
+  --hdr:#1e1e1e;--toolbar:#2d2d2d;
+  --text:#ddd;--text2:#aaa;--text3:#777;--text-bright:#fff;
+  --border:#444;--border2:#555;--border3:#3a3a3a;
+  --sel:#1a6baf;--sel2:#1557a0;
+  --blue:#2196F3;--red:#f44336;--green:#4caf50;--amber:#ff9800;--orange:#ff5722;
+  --row-h:24px;--hdr-h:44px;
+  --col-id:32px;--col-name:220px;--col-type:70px;--col-size:50px;--col-dur:50px;--col-start:88px;--col-fin:75px;--col-pred:75px;--col-res:95px;--col-pct:60px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:var(--text);display:flex;flex-direction:column}
+
+/* MENU BAR */
+#menubar{height:26px;background:var(--hdr);display:flex;align-items:center;border-bottom:1px solid #111;flex-shrink:0;padding:0 8px}
+.menu-item{padding:0 10px;height:26px;display:flex;align-items:center;cursor:pointer;color:var(--text2);font-size:12px;position:relative;user-select:none}
+.menu-item:hover{background:var(--bg3);color:var(--text-bright)}
+.menu-logo{font-weight:700;color:var(--blue);margin-right:12px;font-size:13px}
+.menu-sep{width:1px;height:16px;background:var(--border);margin:0 6px}
+.dropdown{position:absolute;top:100%;left:0;background:#252525;border:1px solid #555;border-radius:2px;box-shadow:0 4px 16px rgba(0,0,0,.6);min-width:190px;z-index:200;display:none}
+.menu-item:hover .dropdown{display:block}
+.dd-item{padding:6px 14px;cursor:pointer;color:var(--text);font-size:12px;display:flex;align-items:center;gap:8px}
+.dd-item:hover,.dd-item label:hover{background:var(--sel);color:#fff}
+.dd-item label{flex:1;cursor:pointer}
+.dd-sep{height:1px;background:var(--border);margin:3px 0}
+.dd-key{margin-left:auto;color:var(--text3);font-size:11px}
+
+/* TOOLBAR */
+#toolbar{height:34px;background:var(--toolbar);display:flex;align-items:center;border-bottom:1px solid #111;flex-shrink:0;padding:0 4px;gap:1px;flex-wrap:wrap}
+.tb{height:26px;min-width:26px;padding:0 8px;border:1px solid transparent;border-radius:2px;background:transparent;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;font-size:11px;white-space:nowrap}
+.tb:hover{background:var(--bg4);border-color:var(--border2);color:var(--text-bright)}
+.tb.on{background:var(--sel)!important;border-color:var(--sel)!important;color:#fff!important}
+.tb.crit-on{background:var(--red)!important;border-color:var(--red)!important;color:#fff!important}
+.tb-sep{width:1px;height:20px;background:var(--border);margin:0 3px;flex-shrink:0}
+.tb-spacer{flex:1}
+
+/* LAYOUT */
+#main{flex:1;display:flex;overflow:hidden}
+#left-panel{display:flex;flex-direction:column;flex-shrink:0;border-right:2px solid #111;background:var(--bg2);width:700px;min-width:300px;max-width:1000px}
+#left-hdr{height:var(--hdr-h);flex-shrink:0;border-bottom:1px solid #111;display:flex;flex-direction:column}
+#left-hdr-top{height:22px;display:flex;align-items:center;background:var(--hdr);border-bottom:1px solid #111;padding:0 6px;font-size:11px;color:var(--text3);gap:12px}
+#left-hdr-cols{flex:1;display:flex;align-items:stretch;background:#3c3c3c}
+#right-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#chart-hdr{height:var(--hdr-h);flex-shrink:0;border-bottom:1px solid #111;background:#3c3c3c;position:relative;overflow-x:auto;overflow-y:hidden}
+#chart-hdr::-webkit-scrollbar{display:none}
+#scroll-wrap{flex:1;display:flex;overflow:hidden}
+#grid-body-outer{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;position:relative}
+#grid-body{position:relative}
+#chart-body-outer{flex:1;overflow:auto;position:relative}
+#chart-body{position:relative;min-width:100%}
+
+/* GRID HEADERS */
+.gh{display:flex;align-items:center;justify-content:center;border-right:1px solid var(--border);font-size:10px;font-weight:600;color:var(--text2);padding:0 2px;flex-shrink:0;white-space:nowrap;overflow:hidden;user-select:none}
+.gh:last-child{border-right:none}
+.gh-name{justify-content:flex-start;padding-left:6px}
+
+/* GRID ROWS */
+.tr{display:flex;height:var(--row-h);align-items:stretch;border-bottom:1px solid var(--border3);cursor:pointer;position:relative;flex-shrink:0}
+.tr:hover .tc{background:rgba(255,255,255,.03)}
+.tr.sel .tc{background:var(--sel)!important;color:#fff!important}
+.tr.sel input,.tr.sel select{color:#fff!important}
+.tr.prd-row .tc{background:#2a2a2a;font-weight:600}
+.tr.story-row .tc{background:#2e2e2e}
+.tr.conflict .tc{background:rgba(244,67,54,.15)!important}
+.tr.conflict{box-shadow:inset 0 0 0 2px var(--red)}
+.tc{display:flex;align-items:center;border-right:1px solid var(--border3);padding:0 3px;overflow:hidden;font-size:11px;color:var(--text);flex-shrink:0}
+.tc:last-child{border-right:none}
+.tc input,.tc select{width:100%;height:18px;border:none;background:transparent;color:inherit;font-size:11px;font-family:inherit;outline:none;padding:0 2px}
+.tc input:focus{background:#1a3a5c;color:#fff;border-radius:1px}
+.tc select{cursor:pointer}
+.tc-id{justify-content:center;color:var(--text3);font-size:10px}
+.tc-fin{color:var(--text2);font-size:10px;justify-content:center}
+.tc-pct{padding:2px 3px}
+.pct-wrap{display:flex;flex-direction:column;width:100%;gap:1px}
+.pct-input{height:14px!important;font-size:10px!important;text-align:center}
+.pct-bar{height:3px;background:var(--bg5);border-radius:2px;overflow:hidden}
+.pct-fill{height:100%;background:var(--green);border-radius:2px}
+.expand-btn{width:14px;height:14px;border:1px solid var(--border2);border-radius:2px;background:var(--bg4);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;flex-shrink:0;margin-right:3px;color:var(--text2)}
+.expand-btn:hover{background:var(--bg5);color:#fff}
+.ms-icon{color:var(--amber);margin-right:2px;font-size:10px}
+.type-badge{font-size:9px;padding:1px 4px;border-radius:2px;color:#fff;margin-right:4px}
+.size-badge{font-size:9px;padding:1px 4px;border-radius:2px;background:var(--bg5);color:var(--text2);margin-left:auto}
+.variance{font-size:9px;padding:1px 3px;border-radius:2px;margin-left:4px}
+.variance.over{background:rgba(244,67,54,.2);color:#f44336}
+.variance.under{background:rgba(76,175,80,.2);color:#4caf50}
+
+/* SPLITTER */
+#splitter{width:5px;background:transparent;cursor:col-resize;flex-shrink:0;z-index:5}
+#splitter:hover,#splitter.active{background:var(--blue)}
+
+/* CHART */
+#chart-inner{position:relative}
+.daybg{position:absolute;top:0;pointer-events:none}
+.daybg.wk{background:rgba(0,0,0,.18)}
+.daybg.tod{background:rgba(33,150,243,.12)}
+.today-line{position:absolute;top:0;width:2px;background:var(--red);opacity:.7;z-index:6;pointer-events:none}
+.cr{position:absolute;left:0;right:0;height:var(--row-h);pointer-events:none}
+.cr.sel-row{background:rgba(26,107,175,.25)}
+.cr.prd-row{background:rgba(0,0,0,.12)}
+.cr.story-row{background:rgba(0,0,0,.06)}
+
+/* BARS */
+.gbar{position:absolute;border-radius:3px;cursor:grab;overflow:hidden;display:flex;align-items:center;user-select:none;z-index:3}
+.gbar:hover{filter:brightness(1.15)}
+.gbar:active{cursor:grabbing}
+.gbar.conflict-bar{box-shadow:0 0 0 2px var(--red)}
+.gbar-pct{position:absolute;left:0;top:0;bottom:0;background:rgba(0,0,0,.3);pointer-events:none}
+.gbar-lbl{position:relative;z-index:1;padding:0 5px;font-size:10px;font-weight:500;color:rgba(255,255,255,.95);white-space:nowrap;overflow:hidden;flex:1;pointer-events:none}
+.gbar-rh{position:absolute;right:0;top:0;bottom:0;width:6px;cursor:ew-resize;background:rgba(255,255,255,.2);z-index:2}
+.ghost-bar{position:absolute;border-radius:3px;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.2);pointer-events:none;z-index:1}
+/* PRD/Summary bar */
+.prd-bar{border-radius:0!important;background:rgba(100,100,100,.4)!important;border-bottom:3px solid rgba(255,255,255,.5)}
+.story-bar{background:rgba(80,80,80,.5)!important}
+/* Milestone */
+.ms-dia{position:absolute;cursor:pointer;transform:rotate(45deg);border-radius:2px;z-index:4}
+.ms-dia:hover{filter:brightness(1.2) drop-shadow(0 0 4px rgba(255,152,0,.7))}
+/* Deadline */
+.dl-line{position:absolute;top:0;width:2px;background:var(--red);opacity:.75;pointer-events:none;z-index:5}
+.dl-tri{position:absolute;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid var(--red);z-index:5}
+/* Dependency SVG */
+#dep-svg{position:absolute;top:0;left:0;pointer-events:none;z-index:7;overflow:visible}
+
+/* SIDEBAR */
+#sidebar{width:260px;flex-shrink:0;border-left:1px solid #111;background:var(--bg2);display:flex;flex-direction:column;overflow:hidden}
+#sidebar-tabs{display:flex;background:var(--hdr);border-bottom:1px solid #111;flex-shrink:0}
+.stab{flex:1;height:28px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent}
+.stab:hover{color:var(--text);background:var(--bg3)}
+.stab.on{color:var(--blue);border-bottom-color:var(--blue)}
+#sidebar-body{flex:1;overflow-y:auto;padding:8px}
+.sp{margin-bottom:14px}
+.sp-title{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.sr{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.sr label{font-size:11px;color:var(--text2);min-width:55px;flex-shrink:0}
+.sr input,.sr select{flex:1;height:22px;padding:0 5px;border:1px solid var(--border2);border-radius:2px;background:var(--bg3);color:var(--text);font-size:11px;font-family:inherit;outline:none}
+.sr input:focus,.sr select:focus{border-color:var(--blue)}
+.res-card{background:var(--bg3);border-radius:3px;padding:6px 8px;margin-bottom:5px;border:1px solid var(--border);cursor:pointer;transition:border-color .12s,background .12s}
+.res-card:hover{border-color:var(--blue);background:var(--bg4)}
+.res-card.active{border-color:var(--blue);background:rgba(33,150,243,.12);box-shadow:0 0 0 1px var(--blue) inset}
+.cap-clear-btn{width:100%;padding:6px;margin-bottom:8px;background:var(--bg4);border:1px solid var(--border);border-radius:3px;color:var(--text);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.cap-clear-btn:hover{background:var(--blue);border-color:var(--blue);color:#fff}
+.cap-filter-banner{background:rgba(33,150,243,.15);border:1px solid var(--blue);border-radius:3px;padding:5px 8px;margin-bottom:8px;font-size:11px;color:var(--text);display:flex;align-items:center;gap:6px}
+.res-name{display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:12px}
+.res-cap{font-size:10px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between}
+.cap-bar{height:4px;background:var(--bg5);border-radius:2px;overflow:hidden}
+.cap-fill{height:100%;border-radius:2px}
+.cdot{width:12px;height:12px;border-radius:50%;flex-shrink:0;cursor:pointer}
+.conflict-item{background:rgba(244,67,54,.1);border:1px solid var(--red);border-radius:3px;padding:6px 8px;margin-bottom:5px;font-size:11px}
+.conflict-item b{color:var(--red)}
+.conflict-task{color:var(--text);text-decoration:underline;cursor:pointer}
+.conflict-task:hover{color:var(--text-bright)}
+
+/* DELAY SIMULATION */
+.delay-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:4px 6px;background:var(--bg3);border-radius:3px}
+.delay-row .name{flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.delay-row input{width:50px;height:20px;text-align:center}
+.delay-info{background:var(--bg4);border-radius:3px;padding:8px;margin-top:8px;font-size:11px}
+.delay-info b{color:var(--amber)}
+
+/* STATUS BAR */
+#statusbar{height:22px;background:var(--hdr);border-top:1px solid #111;display:flex;align-items:center;padding:0 10px;font-size:11px;color:var(--text3);gap:14px;flex-shrink:0}
+
+/* MODALS */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:500}
+.mbox{background:#2d2d2d;border:1px solid var(--border2);border-radius:4px;padding:18px;width:92%;max-width:500px;box-shadow:0 8px 32px rgba(0,0,0,.6);max-height:90vh;overflow-y:auto}
+.mbox h3{font-size:14px;font-weight:600;color:var(--text-bright);margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.mfr{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+.mfr label{font-size:11px;color:var(--text2)}
+.mfr input,.mfr select,.mfr textarea{height:28px;padding:0 8px;border:1px solid var(--border2);border-radius:2px;background:var(--bg4);color:var(--text);font-size:12px;font-family:inherit;outline:none}
+.mfr textarea{height:60px;padding:6px 8px;resize:vertical}
+.mfr input:focus,.mfr select:focus,.mfr textarea:focus{border-color:var(--blue)}
+.mfr2{display:flex;gap:10px}.mfr2 .mfr{flex:1}
+.mft{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+.mbtn{height:28px;padding:0 16px;font-size:11px;border:1px solid var(--border2);border-radius:3px;background:var(--bg4);color:var(--text);cursor:pointer}
+.mbtn:hover{background:var(--bg5)}
+.mbtn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.mbtn.pri:hover{background:#1976d2}
+.mbtn.danger{background:var(--red);border-color:var(--red);color:#fff}
+.range-r{display:flex;gap:6px;align-items:flex-end;margin-bottom:8px}
+.range-r .mfr{flex:1;margin-bottom:0}
+
+/* CONTEXT MENU */
+#ctx{position:fixed;background:#252525;border:1px solid var(--border2);border-radius:3px;box-shadow:0 4px 16px rgba(0,0,0,.6);z-index:900;min-width:180px;padding:4px 0;display:none}
+.ci{padding:6px 14px;font-size:12px;cursor:pointer;color:var(--text);display:flex;align-items:center;gap:8px}
+.ci:hover{background:var(--sel);color:#fff}
+.csep{height:1px;background:var(--border);margin:3px 0}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#606060}
+
+/* Saved flash */
+#saved{position:fixed;bottom:30px;right:16px;background:var(--green);color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+#saved.on{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- MENU BAR -->
+<div id="menubar">
+  <span class="menu-logo">◆ Card Squad Planner</span>
+  <div class="menu-item">File
+    <div class="dropdown">
+      <div class="dd-item" onclick="exportJSON()">↓ Export JSON <span class="dd-key">Ctrl+S</span></div>
+      <div class="dd-item"><label>↑ Import JSON<input type="file" accept=".json" style="display:none" onchange="importJSON(event)"></label></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="resetProject()">New Project</div>
+    </div>
+  </div>
+  <div class="menu-item">Edit
+    <div class="dropdown">
+      <div class="dd-item" onclick="addRow('prd')">+ Insert PRD</div>
+      <div class="dd-item" onclick="addRow('story')">+ Insert Story</div>
+      <div class="dd-item" onclick="addRow('task')">+ Insert Task <span class="dd-key">Ins</span></div>
+      <div class="dd-item" onclick="addRow('milestone')">◆ Insert Milestone</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="delRow()">Delete <span class="dd-key">Del</span></div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="indent(1)">Indent →</div>
+      <div class="dd-item" onclick="indent(-1)">Outdent ←</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="moveRow(-1)">Move Up ↑</div>
+      <div class="dd-item" onclick="moveRow(1)">Move Down ↓</div>
+    </div>
+  </div>
+  <div class="menu-item">View
+    <div class="dropdown">
+      <div class="dd-item" onclick="toggleCritical()">Toggle Critical Path</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="zoomIn()">Zoom In <span class="dd-key">+</span></div>
+      <div class="dd-item" onclick="zoomOut()">Zoom Out <span class="dd-key">−</span></div>
+    </div>
+  </div>
+  <div class="menu-item">Project
+    <div class="dropdown">
+      <div class="dd-item" onclick="autoLevel()">⟳ Level Resources</div>
+      <div class="dd-item" onclick="recalcSchedule()">Recalculate</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="openProjSettings()">Project Settings</div>
+    </div>
+  </div>
+  <div class="menu-sep"></div>
+  <span id="proj-name-lbl" style="font-size:11px;color:var(--text2)"></span>
+</div>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <button class="tb" onclick="addRow('prd')">+ PRD</button>
+  <button class="tb" onclick="addRow('story')">+ Story</button>
+  <button class="tb" onclick="addRow('task')">+ Task</button>
+  <button class="tb" onclick="addRow('milestone')">◆</button>
+  <div class="tb-sep"></div>
+  <button class="tb" onclick="delRow()">🗑</button>
+  <button class="tb" onclick="indent(1)">→</button>
+  <button class="tb" onclick="indent(-1)">←</button>
+  <button class="tb" onclick="moveRow(-1)" title="Move Up">↑</button>
+  <button class="tb" onclick="moveRow(1)" title="Move Down">↓</button>
+  <div class="tb-sep"></div>
+  <button class="tb" onclick="autoLevel()">⟳ Level</button>
+  <button class="tb" id="crit-btn" onclick="toggleCritical()">● Critical</button>
+  <div class="tb-sep"></div>
+  <button class="tb" onclick="zoomOut()">−</button>
+  <span id="zoom-lbl" style="font-size:10px;color:var(--text3);min-width:30px;text-align:center">26px</span>
+  <button class="tb" onclick="zoomIn()">+</button>
+  <div class="tb-sep"></div>
+  <button class="tb" style="background:var(--green);color:#fff" onclick="exportJSON()">↓ Export</button>
+  <label class="tb" style="background:var(--amber);color:#fff;cursor:pointer">↑ Import<input type="file" accept=".json" style="display:none" onchange="importJSON(event)"></label>
+  <div class="tb-spacer"></div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="left-panel">
+    <div id="left-hdr">
+      <div id="left-hdr-top">
+        <span>PRDs: <b id="prd-count">0</b></span>
+        <span>Stories: <b id="story-count">0</b></span>
+        <span>Tasks: <b id="task-count">0</b></span>
+      </div>
+      <div id="left-hdr-cols">
+        <div class="gh" style="width:var(--col-id)">#</div>
+        <div class="gh gh-name" style="width:var(--col-name)">Name</div>
+        <div class="gh" style="width:var(--col-type)">Type</div>
+        <div class="gh" style="width:var(--col-size)">Size</div>
+        <div class="gh" style="width:var(--col-dur)">Days</div>
+        <div class="gh" style="width:var(--col-start)">Start</div>
+        <div class="gh" style="width:var(--col-fin)">Finish</div>
+        <div class="gh" style="width:var(--col-pred)">Pred</div>
+        <div class="gh" style="width:var(--col-res)">Resource</div>
+        <div class="gh" style="flex:1">%</div>
+      </div>
+    </div>
+    <div id="grid-body-outer"><div id="grid-body"></div></div>
+  </div>
+  <div id="splitter"></div>
+  <div id="right-panel">
+    <div id="chart-hdr"></div>
+    <div id="chart-body-outer"><div id="chart-body"></div></div>
+  </div>
+  <div id="sidebar">
+    <div id="sidebar-tabs">
+      <div class="stab on" onclick="showSTab('team')" data-tab="team">Team</div>
+      <div class="stab" onclick="showSTab('capacity')" data-tab="capacity">Capacity</div>
+      <div class="stab" onclick="showSTab('delays')" data-tab="delays">Delays</div>
+      <div class="stab" onclick="showSTab('settings')" data-tab="settings">Settings</div>
+    </div>
+    <div id="sidebar-body">
+      <div id="stab-team">
+        <div class="sp">
+          <div class="sp-title">Conflicts <span id="conflict-count" style="color:var(--red)"></span></div>
+          <div id="conflict-list"></div>
+        </div>
+        <div class="sp">
+          <div class="sp-title">Resources</div>
+          <div id="res-list"></div>
+          <button class="tb" style="width:100%;justify-content:center;margin-top:4px" onclick="openResModal()">+ Add Resource</button>
+        </div>
+        <div class="sp">
+          <div class="sp-title">T-Shirt Sizes</div>
+          <div id="size-list"></div>
+        </div>
+        <div class="sp">
+          <div class="sp-title">Task Types</div>
+          <div id="type-list"></div>
+        </div>
+      </div>
+      <div id="stab-capacity" style="display:none">
+        <div class="sp"><div class="sp-title">Utilization</div><div id="cap-list"></div></div>
+      </div>
+      <div id="stab-delays" style="display:none">
+        <div class="sp">
+          <div class="sp-title">Delay Simulation</div>
+          <p style="font-size:11px;color:var(--text2);margin-bottom:8px">Add days to stories to simulate delays and see cascading impact.</p>
+          <div id="delay-list"></div>
+          <div class="delay-info" id="delay-info" style="display:none">
+            <div>Original end: <span id="orig-end"></span></div>
+            <div>New end: <b id="new-end"></b></div>
+            <div style="margin-top:6px" id="delay-log"></div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px">
+            <button class="mbtn pri" onclick="applyDelays()">Apply Delays</button>
+            <button class="mbtn" onclick="resetDelays()">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div id="stab-settings" style="display:none">
+        <div class="sp">
+          <div class="sp-title">Project</div>
+          <div class="sr"><label>Name</label><input id="s-pname" onchange="S.proj.name=this.value;save();renderHdr()"/></div>
+          <div class="sr"><label>Start</label><input type="date" id="s-pstart" onchange="S.proj.start=this.value;schedAll();save();render()"/></div>
+          <div class="sr"><label>End</label><input type="date" id="s-pend" onchange="S.proj.end=this.value;save();render()"/></div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">Duration: <span id="s-duration"></span> working days</div>
+        </div>
+        <div class="sp">
+          <div class="sp-title">Weekend</div>
+          <div style="font-size:11px;color:var(--text2)">Friday + Saturday (Middle East)</div>
+        </div>
+        <div class="sp">
+          <div class="sp-title">Zoom</div>
+          <input type="range" id="zoom-r" min="14" max="60" value="26" oninput="S.zoom=+this.value;render()" style="width:100%"/>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div id="statusbar">
+  <span id="st-info">Ready</span>
+  <span style="flex:1"></span>
+  <span id="st-saved" style="color:var(--green)"></span>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx">
+  <div class="ci" onclick="addRow('prd')">+ Insert PRD</div>
+  <div class="ci" onclick="addRow('story')">+ Insert Story</div>
+  <div class="ci" onclick="addRow('task')">+ Insert Task</div>
+  <div class="ci" onclick="addRow('milestone')">◆ Insert Milestone</div>
+  <div class="csep"></div>
+  <div class="ci" onclick="openTaskModal()">✏ Properties…</div>
+  <div class="ci" onclick="delRow()">🗑 Delete</div>
+  <div class="csep"></div>
+  <div class="ci" onclick="indent(1)">→ Indent</div>
+  <div class="ci" onclick="indent(-1)">← Outdent</div>
+  <div class="csep"></div>
+  <div class="ci" onclick="moveRow(-1)">↑ Move Up</div>
+  <div class="ci" onclick="moveRow(1)">↓ Move Down</div>
+</div>
+
+<!-- TASK MODAL -->
+<div id="m-task" style="display:none"><div class="mbg" onclick="closeM('task')"><div class="mbox" onclick="event.stopPropagation()">
+  <h3 id="mt-title">Properties</h3>
+  <input type="hidden" id="mt-id">
+  <div class="mfr"><label>Name</label><input id="mt-name"/></div>
+  <div class="mfr2">
+    <div class="mfr"><label>Kind</label><select id="mt-kind"><option value="prd">PRD</option><option value="story">Story</option><option value="task">Task</option><option value="milestone">Milestone</option></select></div>
+    <div class="mfr"><label>Task Type</label><select id="mt-ttype"></select></div>
+  </div>
+  <div class="mfr2">
+    <div class="mfr"><label>T-Shirt Size</label><select id="mt-size"></select></div>
+    <div class="mfr"><label>Duration (days)</label><input type="number" id="mt-dur" min="0"/></div>
+  </div>
+  <div class="mfr2">
+    <div class="mfr"><label>Start Date</label><input type="date" id="mt-start"/></div>
+    <div class="mfr"><label>% Complete</label><input type="number" id="mt-pct" min="0" max="100"/></div>
+  </div>
+  <div class="mfr2">
+    <div class="mfr"><label>Predecessors</label><input id="mt-pred" placeholder="3FS, 5FF, 2SS+1"/><div style="font-size:10px;color:var(--text3);margin-top:2px">FS=Finish→Start, FF=Finish→Finish, SS=Start→Start, SF=Start→Finish</div></div>
+    <div class="mfr"><label>Resource</label><select id="mt-res"></select></div>
+  </div>
+  <div class="mfr"><label>Deadline</label><input type="date" id="mt-dl"/></div>
+  <div class="mfr"><label>Notes</label><textarea id="mt-notes"></textarea></div>
+  <div class="mft"><button class="mbtn" onclick="closeM('task')">Cancel</button><button class="mbtn pri" onclick="saveTaskModal()">Save</button></div>
+</div></div></div>
+
+<!-- RESOURCE MODAL -->
+<div id="m-res" style="display:none"><div class="mbg" onclick="closeM('res')"><div class="mbox" onclick="event.stopPropagation()">
+  <h3 id="mr-title">Resource</h3>
+  <input type="hidden" id="mr-id">
+  <div class="mfr2">
+    <div class="mfr"><label>Name</label><input id="mr-name"/></div>
+    <div class="mfr"><label>Role</label><input id="mr-role"/></div>
+  </div>
+  <div class="mfr"><label>Color</label><select id="mr-color"></select></div>
+  <div style="margin:12px 0 8px;font-size:11px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);padding-bottom:4px">TIME OFF (Fri &amp; Sat auto-excluded)</div>
+  <div id="mr-ranges"></div>
+  <div class="range-r">
+    <div class="mfr"><label>From</label><input type="date" id="mr-from"/></div>
+    <div class="mfr"><label>To</label><input type="date" id="mr-to"/></div>
+    <button class="mbtn" onclick="addTR()">+ Add</button>
+  </div>
+  <div class="mft"><button class="mbtn" onclick="closeM('res')">Cancel</button><button class="mbtn pri" onclick="saveRes()">Save</button></div>
+</div></div></div>
+
+<!-- PROJECT SETTINGS MODAL -->
+<div id="m-proj" style="display:none"><div class="mbg" onclick="closeM('proj')"><div class="mbox" onclick="event.stopPropagation()">
+  <h3>Project Settings</h3>
+  <div class="mfr"><label>Project Name</label><input id="mp-name"/></div>
+  <div class="mfr2">
+    <div class="mfr"><label>Start Date</label><input type="date" id="mp-start"/></div>
+    <div class="mfr"><label>End Date</label><input type="date" id="mp-end"/></div>
+  </div>
+  <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Set the project timeframe for capacity planning. End date defines the planning horizon.</div>
+  <div class="mft"><button class="mbtn" onclick="closeM('proj')">Cancel</button><button class="mbtn pri" onclick="saveProjSet()">Save</button></div>
+</div></div></div>
+
+<div id="saved">✓ Saved</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CARD SQUAD PROJECT PLANNER - Gantter Replacement
+// Implements: US-10, US-11, US-12, US-13, US-14, US-15
+// ═══════════════════════════════════════════════════════════════
+
+// ── COLORS ──
+const COLORS = {
+  Cobalt:'#2196F3', Teal:'#009688', Coral:'#FF5722', Violet:'#9C27B0',
+  Amber:'#FF9800', Rose:'#E91E63', Sage:'#4CAF50', Indigo:'#3F51B5',
+  Sky:'#00BCD4', Gold:'#FFC107'
+};
+const COLOR_NAMES = Object.keys(COLORS);
+const COLOR_VALUES = Object.values(COLORS);
+
+const TYPE_COLORS = {
+  Dev:'#2196F3', Testing:'#009688', Mobile:'#9C27B0',
+  Design:'#FF5722', 'Code Review':'#FF9800', QA:'#00BCD4'
+};
+const typeColor = t => TYPE_COLORS[t] || COLOR_VALUES[Math.abs((t||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % COLOR_VALUES.length];
+
+// ── UTILITIES ──
+const uid = () => (Date.now() + Math.random()).toString(36).slice(-8);
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+// Date utilities with guards against infinite loops
+function addDays(d, n) {
+  if (!d || typeof d !== 'string') return new Date().toISOString().slice(0,10);
+  const dt = new Date(d + 'T12:00:00');
+  if (isNaN(dt.getTime())) return new Date().toISOString().slice(0,10);
+  dt.setDate(dt.getDate() + n);
+  return dt.toISOString().slice(0,10);
+}
+
+function daysDiff(a, b) {
+  if (!a || !b) return 0;
+  const da = new Date(a + 'T12:00:00'), db = new Date(b + 'T12:00:00');
+  if (isNaN(da.getTime()) || isNaN(db.getTime())) return 0;
+  return Math.round((db - da) / 86400000);
+}
+
+function today() { return new Date().toISOString().slice(0,10); }
+
+// Weekend: Friday=5, Saturday=6 (Middle East)
+function isWeekend(d) {
+  if (!d) return false;
+  const dt = new Date(d + 'T12:00:00');
+  if (isNaN(dt.getTime())) return false;
+  const w = dt.getDay();
+  return w === 5 || w === 6;
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const dt = new Date(d + 'T12:00:00');
+  if (isNaN(dt.getTime())) return '';
+  return dt.toLocaleDateString('en-GB', {day:'2-digit', month:'short'});
+}
+
+// Get all time-off days for a resource
+function getTimeOffSet(r) {
+  const s = new Set();
+  if (!r || !r.timeoff) return s;
+  r.timeoff.forEach(range => {
+    if (!range.from || !range.to) return;
+    let c = range.from, guard = 0;
+    while (c <= range.to && guard < 400) {
+      if (!isWeekend(c)) s.add(c);
+      c = addDays(c, 1);
+      guard++;
+    }
+  });
+  return s;
+}
+
+// Next working day (skips weekends and time-off)
+function nextWorkDay(d, r) {
+  if (!d) d = today();
+  const offs = r ? getTimeOffSet(r) : new Set();
+  let guard = 0;
+  while ((isWeekend(d) || offs.has(d)) && guard < 100) {
+    d = addDays(d, 1);
+    guard++;
+  }
+  return d;
+}
+
+// Add N working days
+function addWorkDays(start, n, r) {
+  if (!start) start = today();
+  if (!n || n <= 0) return start;
+  const offs = r ? getTimeOffSet(r) : new Set();
+  let d = start, cnt = 0, guard = 0;
+  while (cnt < n && guard < 500) {
+    d = addDays(d, 1);
+    guard++;
+    if (!isWeekend(d) && !offs.has(d)) cnt++;
+  }
+  return d;
+}
+
+// Subtract N working days (go backwards)
+function subWorkDays(start, n, r) {
+  if (!start) start = today();
+  if (!n || n <= 0) return start;
+  const offs = r ? getTimeOffSet(r) : new Set();
+  let d = start, cnt = 0, guard = 0;
+  while (cnt < n && guard < 500) {
+    d = addDays(d, -1);
+    guard++;
+    if (!isWeekend(d) && !offs.has(d)) cnt++;
+  }
+  return d;
+}
+
+// Calculate finish date
+function calcFinish(start, dur, r) {
+  if (!start) return today();
+  if (!dur || dur <= 0) return start;
+  return addWorkDays(start, dur - 1, r);
+}
+
+// Count working days between two dates
+function workDaysBetween(s, f, r) {
+  if (!s || !f || f < s) return 1;
+  const offs = r ? getTimeOffSet(r) : new Set();
+  let cnt = 0, d = s, guard = 0;
+  while (d <= f && guard < 500) {
+    if (!isWeekend(d) && !offs.has(d)) cnt++;
+    d = addDays(d, 1);
+    guard++;
+  }
+  return Math.max(1, cnt);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+const STORAGE_KEY = 'card-squad-planner-v2';
+
+let S = {
+  proj: { name: 'Card Squad Q1-Q2 2026', start: '2026-01-05', end: '2026-04-05' },
+  resources: [
+    { id: 'r1', name: 'Ahmed', role: 'Backend', color: '#2196F3', timeoff: [] },
+    { id: 'r2', name: 'Sara', role: 'Frontend', color: '#009688', timeoff: [] },
+    { id: 'r3', name: 'Omar', role: 'QA', color: '#FF5722', timeoff: [] },
+    { id: 'r4', name: 'Nour', role: 'Mobile', color: '#9C27B0', timeoff: [] },
+    { id: 'r5', name: 'Heidi', role: 'Mobile', color: '#E91E63', timeoff: [] },
+  ],
+  sizes: [
+    { id: 'xs', label: 'XS', days: 1 },
+    { id: 's', label: 'S', days: 3 },
+    { id: 'm', label: 'M', days: 5 },
+    { id: 'l', label: 'L', days: 10 },
+    { id: 'xl', label: 'XL', days: 20 },
+    { id: 'xxl', label: 'XXL', days: 30 },
+  ],
+  taskTypes: ['Dev', 'Testing', 'Mobile', 'Design', 'Code Review'],
+  tasks: [],
+  delays: {}, // { taskId: delayDays }
+  zoom: 26,
+  showCrit: false,
+  selId: null,
+  resFilter: null
+};
+
+// Helper lookups
+const getRes = id => S.resources.find(r => r.id === id);
+const getSize = id => S.sizes.find(s => s.id === id);
+const taskById = id => S.tasks.find(t => t.id === id);
+
+// ═══════════════════════════════════════════════════════════════
+// DEFAULT DATA - Card Squad User Stories
+// ═══════════════════════════════════════════════════════════════
+function loadDefaultData() {
+  S.tasks = [
+    // EP-01 BCard Core
+    { id: 'ep01', name: 'EP-01: BCard Core Product', kind: 'prd', lv: 0, start: '2026-01-12', sz: 'xl', dur: 20, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Login optimization, status API, Redis caching', col: false },
+
+    { id: 'us01', name: 'US-01: BCard Login — Redis Caching', kind: 'story', lv: 1, start: '2026-01-12', sz: 'xl', dur: 20, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: High', col: false },
+    { id: 'us01t1', name: 'Implement Redis cache layer', kind: 'task', lv: 2, start: '2026-01-12', sz: 'l', dur: 10, pct: 0, pred: '', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us01t2', name: 'Cache invalidation on logout', kind: 'task', lv: 2, start: '2026-01-26', sz: 's', dur: 3, pct: 0, pred: '3', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us01t3', name: 'Load testing with K6', kind: 'task', lv: 2, start: '2026-01-29', sz: 's', dur: 3, pct: 0, pred: '4', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
+    { id: 'us01t4', name: 'Datadog dashboard setup', kind: 'task', lv: 2, start: '2026-02-03', sz: 'xs', dur: 1, pct: 0, pred: '5', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
+
+    { id: 'us02', name: 'US-02: BCard Get Status API Consolidation', kind: 'story', lv: 1, start: '2026-01-12', sz: 'l', dur: 10, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: High', col: false },
+    { id: 'us02t1', name: 'Consolidate DB queries', kind: 'task', lv: 2, start: '2026-01-12', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us02t2', name: 'Add Redis cache layer', kind: 'task', lv: 2, start: '2026-01-19', sz: 's', dur: 3, pct: 0, pred: '8', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us02t3', name: 'QA regression testing', kind: 'task', lv: 2, start: '2026-01-22', sz: 'xs', dur: 1, pct: 0, pred: '9', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
+
+    { id: 'us03', name: 'US-03: BCard Mobile Login Screen Redesign', kind: 'story', lv: 1, start: '2026-01-12', sz: 'l', dur: 10, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: Medium', col: false },
+    { id: 'us03t1', name: 'iOS login screen implementation', kind: 'task', lv: 2, start: '2026-01-12', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r4', dl: '', ttype: 'Mobile', notes: '' },
+    { id: 'us03t2', name: 'Android login screen implementation', kind: 'task', lv: 2, start: '2026-01-12', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r5', dl: '', ttype: 'Mobile', notes: '' },
+    { id: 'us03t3', name: 'Accessibility audit', kind: 'task', lv: 2, start: '2026-01-19', sz: 'xs', dur: 1, pct: 0, pred: '12,13', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
+
+    // EP-02 Card Top-Up
+    { id: 'ep02', name: 'EP-02: Card Top-Up Flows', kind: 'prd', lv: 0, start: '2026-02-02', sz: 'xxl', dur: 30, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Top-up via wallet, bank transfer, VISA integration', col: false },
+
+    { id: 'us04', name: 'US-04: Top-Up via Breadfast Wallet', kind: 'story', lv: 1, start: '2026-02-02', sz: 'xl', dur: 20, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: High', col: false },
+    { id: 'us04t1', name: 'Backend API for wallet top-up', kind: 'task', lv: 2, start: '2026-02-02', sz: 'l', dur: 10, pct: 0, pred: '', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us04t2', name: 'Frontend top-up flow', kind: 'task', lv: 2, start: '2026-02-02', sz: 'l', dur: 10, pct: 0, pred: '', res: 'r2', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us04t3', name: 'Idempotency implementation', kind: 'task', lv: 2, start: '2026-02-16', sz: 's', dur: 3, pct: 0, pred: '17', res: 'r1', dl: '', ttype: 'Dev', notes: 'Critical - prevent duplicate payments' },
+    { id: 'us04t4', name: 'Integration testing', kind: 'task', lv: 2, start: '2026-02-19', sz: 's', dur: 3, pct: 0, pred: '18,19', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
+
+    { id: 'us05', name: 'US-05: Top-Up Payment API (VISA/ADIB)', kind: 'story', lv: 1, start: '2026-02-23', sz: 'xxl', dur: 30, pct: 0, pred: '16', res: '', dl: '', ttype: '', notes: 'Priority: High', col: false },
+    { id: 'us05t1', name: 'ADIB gateway integration', kind: 'task', lv: 2, start: '2026-02-23', sz: 'xl', dur: 20, pct: 0, pred: '', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us05t2', name: 'Webhook handling', kind: 'task', lv: 2, start: '2026-03-23', sz: 'm', dur: 5, pct: 0, pred: '22', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us05t3', name: 'CBE compliance audit trail', kind: 'task', lv: 2, start: '2026-03-30', sz: 's', dur: 3, pct: 0, pred: '23', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us05t4', name: 'Security review', kind: 'task', lv: 2, start: '2026-04-02', sz: 's', dur: 3, pct: 0, pred: '24', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
+
+    { id: 'us06', name: 'US-06: Top-Up UI Flow — Mobile', kind: 'story', lv: 1, start: '2026-02-02', sz: 'l', dur: 10, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: High', col: false },
+    { id: 'us06t1', name: 'Amount selection screen', kind: 'task', lv: 2, start: '2026-02-02', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r4', dl: '', ttype: 'Mobile', notes: '' },
+    { id: 'us06t2', name: 'Confirmation & success screens', kind: 'task', lv: 2, start: '2026-02-09', sz: 'm', dur: 5, pct: 0, pred: '27', res: 'r4', dl: '', ttype: 'Mobile', notes: '' },
+    { id: 'us06t3', name: 'Deep link support', kind: 'task', lv: 2, start: '2026-02-16', sz: 'xs', dur: 1, pct: 0, pred: '28', res: 'r4', dl: '', ttype: 'Mobile', notes: '' },
+
+    // EP-03 Cashback
+    { id: 'ep03', name: 'EP-03: Cashback & Rewards', kind: 'prd', lv: 0, start: '2026-02-02', sz: 'xl', dur: 20, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Cashback calculation with idempotency fix', col: false },
+
+    { id: 'us07', name: 'US-07: Cashback Idempotency Fix', kind: 'story', lv: 1, start: '2026-02-02', sz: 'xl', dur: 20, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: CRITICAL', col: false },
+    { id: 'us07t1', name: 'Implement idempotency key system', kind: 'task', lv: 2, start: '2026-02-02', sz: 'l', dur: 10, pct: 0, pred: '', res: 'r1', dl: '', ttype: 'Dev', notes: 'Addresses production incident' },
+    { id: 'us07t2', name: 'Duplicate detection service', kind: 'task', lv: 2, start: '2026-02-16', sz: 'm', dur: 5, pct: 0, pred: '32', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us07t3', name: 'RabbitMQ consumer fix', kind: 'task', lv: 2, start: '2026-02-23', sz: 's', dur: 3, pct: 0, pred: '33', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us07t4', name: 'Integration test: 3x event dedup', kind: 'task', lv: 2, start: '2026-02-26', sz: 'xs', dur: 1, pct: 0, pred: '34', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
+
+    { id: 'us08', name: 'US-08: Cashback Balance on Card Home', kind: 'story', lv: 1, start: '2026-02-02', sz: 'm', dur: 5, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: Medium', col: false },
+    { id: 'us08t1', name: 'Cashback widget frontend', kind: 'task', lv: 2, start: '2026-02-02', sz: 's', dur: 3, pct: 0, pred: '', res: 'r2', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us08t2', name: 'Mobile widget implementation', kind: 'task', lv: 2, start: '2026-02-02', sz: 's', dur: 3, pct: 0, pred: '', res: 'r4', dl: '', ttype: 'Mobile', notes: '' },
+
+    { id: 'us09', name: 'US-09: Cashback History & Detail', kind: 'story', lv: 1, start: '2026-02-09', sz: 'l', dur: 10, pct: 0, pred: '36', res: '', dl: '', ttype: '', notes: 'Priority: Medium', col: false },
+    { id: 'us09t1', name: 'History API with pagination', kind: 'task', lv: 2, start: '2026-02-09', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us09t2', name: 'History screen frontend', kind: 'task', lv: 2, start: '2026-02-09', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r2', dl: '', ttype: 'Dev', notes: '' },
+    { id: 'us09t3', name: 'Mobile history screen', kind: 'task', lv: 2, start: '2026-02-09', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r4', dl: '', ttype: 'Mobile', notes: '' },
+    { id: 'us09t4', name: 'Date filter testing', kind: 'task', lv: 2, start: '2026-02-16', sz: 'xs', dur: 1, pct: 0, pred: '40,41,42', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PERSISTENCE (US-14)
+// ═══════════════════════════════════════════════════════════════
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(S));
+  } catch(e) { console.warn('Save failed:', e); }
+
+  const el = document.getElementById('saved');
+  el.classList.add('on');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('on'), 1500);
+
+  document.getElementById('st-saved').textContent = '✓ Saved ' + new Date().toLocaleTimeString();
+}
+
+function load() {
+  try {
+    const d = localStorage.getItem(STORAGE_KEY);
+    if (d) {
+      const parsed = JSON.parse(d);
+      // Validate structure
+      if (parsed.tasks && Array.isArray(parsed.tasks)) {
+        S = parsed;
+        // Ensure resources have timeoff arrays
+        S.resources = S.resources || [];
+        S.resources.forEach(r => { if (!r.timeoff) r.timeoff = []; });
+        S.delays = S.delays || {};
+        return true;
+      }
+    }
+  } catch(e) {
+    console.warn('Load failed, using defaults:', e);
+    localStorage.removeItem(STORAGE_KEY);
+  }
+  return false;
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'project-' + today() + '.json';
+  a.click();
+}
+
+function importJSON(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      if (!parsed.tasks) throw new Error('Invalid file');
+      S = parsed;
+      S.resources = S.resources || [];
+      S.resources.forEach(r => { if (!r.timeoff) r.timeoff = []; });
+      S.delays = S.delays || {};
+      save();
+      render();
+      renderSidebar();
+    } catch(err) {
+      alert('Invalid project file: ' + err.message);
+    }
+  };
+  r.readAsText(f);
+  e.target.value = '';
+}
+
+function resetProject() {
+  if (!confirm('Start a new empty project? This will clear all tasks.')) return;
+  S.tasks = [];
+  S.selId = null;
+  S.delays = {};
+  save();
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCHEDULING
+// ═══════════════════════════════════════════════════════════════
+
+// Dependency types:
+// FS = Finish-to-Start (default): successor starts after predecessor finishes
+// FF = Finish-to-Finish: successor finishes when predecessor finishes
+// SS = Start-to-Start: successor starts when predecessor starts
+// SF = Start-to-Finish: successor finishes when predecessor starts
+// Format: "3FS" or "3" (default FS), "3FF", "3SS", "3SF", "3FS+2" (with lag)
+
+function parsePreds(pred, selfIdx) {
+  if (!pred) return [];
+  return pred.split(',')
+    .map(x => {
+      const trimmed = x.trim().toUpperCase();
+      // Parse format: number + optional type (FS/FF/SS/SF) + optional lag (+N or -N)
+      const match = trimmed.match(/^(\d+)(FS|FF|SS|SF)?([+-]\d+)?$/);
+      if (!match) return null;
+      const idx = parseInt(match[1]) - 1;
+      const type = match[2] || 'FS';
+      const lag = parseInt(match[3]) || 0;
+      if (isNaN(idx) || idx < 0 || idx >= S.tasks.length || idx === selfIdx) return null;
+      return { idx, type, lag };
+    })
+    .filter(x => x !== null);
+}
+
+// Simple version for backward compatibility
+function parsePredIndices(pred, selfIdx) {
+  return parsePreds(pred, selfIdx).map(p => p.idx);
+}
+
+function schedAll(forwardOnly = false) {
+  // Apply T-shirt sizes to durations
+  S.tasks.forEach(t => {
+    if (t.kind === 'milestone') t.dur = 0;
+    if (t.sz) {
+      const sz = getSize(t.sz);
+      if (sz) t.dur = sz.days;
+    }
+  });
+
+  // Predecessor pass (limited iterations to prevent infinite loop)
+  for (let pass = 0; pass < 15; pass++) {
+    let changed = false;
+    S.tasks.forEach((t, i) => {
+      if (t.kind === 'prd') return; // PRDs don't follow predecessors
+      const r = getRes(t.res);
+      const preds = parsePreds(t.pred, i);
+
+      if (preds.length === 0) return; // No predecessors, keep current start
+
+      // Separate constraints (FS/SS - earliest allowed) from positions (FF/SF - exact date)
+      let earliestStart = null;  // For FS/SS constraints
+      let positionedStart = null; // For FF/SF positioning
+
+      preds.forEach(pred => {
+        const pt = S.tasks[pred.idx];
+        if (!pt) return;
+
+        const predRes = getRes(pt.res);
+        const predStart = pt.start;
+        const predFinish = pt.kind === 'milestone' ? pt.start : calcFinish(pt.start, pt.dur, predRes);
+        const taskDur = t.dur || 1;
+
+        let newStart;
+        switch (pred.type) {
+          case 'FS': // Finish-to-Start: task starts after predecessor finishes
+            newStart = nextWorkDay(addDays(predFinish, 1 + pred.lag), r);
+            if (!earliestStart || newStart > earliestStart) earliestStart = newStart;
+            break;
+          case 'SS': // Start-to-Start: task starts when predecessor starts
+            newStart = nextWorkDay(addDays(predStart, pred.lag), r);
+            if (!earliestStart || newStart > earliestStart) earliestStart = newStart;
+            break;
+          case 'FF': // Finish-to-Finish: task finishes when predecessor finishes
+            const ffTargetFinish = pred.lag ? addWorkDays(predFinish, pred.lag, r) : predFinish;
+            newStart = subWorkDays(ffTargetFinish, taskDur - 1, r);
+            // FF sets exact position - use the latest if multiple FF
+            if (!positionedStart || newStart > positionedStart) positionedStart = newStart;
+            break;
+          case 'SF': // Start-to-Finish: task finishes when predecessor starts
+            const sfTargetFinish = pred.lag ? addWorkDays(predStart, pred.lag, r) : predStart;
+            newStart = subWorkDays(sfTargetFinish, taskDur - 1, r);
+            if (!positionedStart || newStart > positionedStart) positionedStart = newStart;
+            break;
+        }
+      });
+
+      // Determine final start date
+      let finalStart = t.start;
+
+      if (positionedStart) {
+        // FF/SF takes priority - sets exact position
+        finalStart = positionedStart;
+        // But must still respect FS/SS constraints (can't start before allowed)
+        if (earliestStart && earliestStart > finalStart) {
+          finalStart = earliestStart;
+        }
+      } else if (earliestStart) {
+        // Only FS/SS constraints - use earliest allowed
+        finalStart = earliestStart;
+      }
+
+      // Never pull a task back below its current start when the call is
+      // in forward-only mode OR the task was pinned (e.g. by auto-level).
+      // Successors still get pushed forward when predecessors finish later.
+      if ((forwardOnly || t._pinStart) && t.start && finalStart < t.start) {
+        finalStart = t.start;
+      }
+
+      if (finalStart !== t.start) {
+        t.start = finalStart;
+        changed = true;
+      }
+    });
+    if (!changed) break;
+  }
+
+  // PRDs and Stories span their children
+  S.tasks.forEach((t, i) => {
+    if (t.kind !== 'prd' && t.kind !== 'story') return;
+
+    const children = [];
+    const targetLv = t.lv + 1;
+    for (let j = i + 1; j < S.tasks.length; j++) {
+      if (S.tasks[j].lv <= t.lv) break;
+      if (S.tasks[j].lv === targetLv) children.push(S.tasks[j]);
+    }
+
+    if (!children.length) return;
+
+    const starts = children.map(c => c.start).filter(Boolean);
+    const finishes = children.map(c => {
+      if (c.kind === 'milestone') return c.start;
+      return calcFinish(c.start, c.dur, getRes(c.res));
+    }).filter(Boolean);
+
+    if (starts.length && finishes.length) {
+      const cs = starts.reduce((a, b) => a < b ? a : b);
+      const cf = finishes.reduce((a, b) => a > b ? a : b);
+      t.start = cs;
+      t.dur = workDaysBetween(cs, cf, null);
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CRITICAL PATH (US-15)
+// ═══════════════════════════════════════════════════════════════
+function calcCriticalPath() {
+  schedAll();
+
+  const n = S.tasks.length;
+  const ef = {}; // Early finish
+
+  // Forward pass
+  S.tasks.forEach((t, i) => {
+    const r = getRes(t.res);
+    const pids = parsePredIndices(t.pred, i);
+    let es = t.start;
+
+    pids.forEach(pi => {
+      const pt = S.tasks[pi];
+      if (!pt) return;
+      const pf = ef[pi] || pt.start;
+      const ns = nextWorkDay(addDays(pf, 1), r);
+      if (ns > es) es = ns;
+    });
+
+    ef[i] = t.kind === 'milestone' ? es : calcFinish(es, t.dur, r);
+  });
+
+  // Project end
+  const pEnd = Object.values(ef).reduce((a, b) => a > b ? a : b, S.proj.start);
+
+  // Backward pass
+  const lf = {}, ls = {};
+  for (let i = n - 1; i >= 0; i--) {
+    const successors = S.tasks.reduce((acc, st, si) => {
+      if (parsePredIndices(st.pred, si).includes(i)) acc.push(si);
+      return acc;
+    }, []);
+
+    lf[i] = successors.length
+      ? successors.map(si => ls[si] || ef[si]).reduce((a, b) => a < b ? a : b, pEnd)
+      : pEnd;
+
+    const d = S.tasks[i].dur || 0;
+    ls[i] = d <= 1 ? lf[i] : addDays(lf[i], -(d - 1));
+  }
+
+  // Mark critical tasks (zero float)
+  S.tasks.forEach((t, i) => {
+    t._crit = daysDiff(ef[i], lf[i]) <= 0;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONFLICT DETECTION (US-12)
+// ═══════════════════════════════════════════════════════════════
+function detectConflicts() {
+  const conflicts = [];
+  const assignments = {}; // { resId: [{taskId, start, finish}] }
+
+  S.tasks.forEach(t => {
+    if (!t.res || t.kind === 'prd' || t.kind === 'story') return;
+    if (!assignments[t.res]) assignments[t.res] = [];
+
+    const finish = t.kind === 'milestone' ? t.start : calcFinish(t.start, t.dur, getRes(t.res));
+    assignments[t.res].push({ taskId: t.id, name: t.name, start: t.start, finish });
+  });
+
+  // Check for overlaps
+  Object.entries(assignments).forEach(([resId, tasks]) => {
+    const r = getRes(resId);
+    if (!r) return;
+
+    for (let i = 0; i < tasks.length; i++) {
+      for (let j = i + 1; j < tasks.length; j++) {
+        const a = tasks[i], b = tasks[j];
+        // Check overlap: a.start <= b.finish && b.start <= a.finish
+        if (a.start <= b.finish && b.start <= a.finish) {
+          conflicts.push({
+            resource: r.name,
+            task1: a.name,
+            task2: b.name,
+            task1Id: a.taskId,
+            task2Id: b.taskId
+          });
+        }
+      }
+    }
+  });
+
+  // Mark conflicting tasks
+  S.tasks.forEach(t => { t._conflict = false; });
+  conflicts.forEach(c => {
+    const t1 = taskById(c.task1Id);
+    const t2 = taskById(c.task2Id);
+    if (t1) t1._conflict = true;
+    if (t2) t2._conflict = true;
+  });
+
+  return conflicts;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AUTO LEVEL (US-12)
+// ═══════════════════════════════════════════════════════════════
+function autoLevel() {
+  schedAll();
+
+  const resEnd = {};
+  S.resources.forEach(r => { resEnd[r.id] = null; });
+
+  // Process tasks in order, respecting predecessors
+  const sorted = [...S.tasks]
+    .filter(t => t.kind === 'task' || t.kind === 'milestone')
+    .sort((a, b) => a.start < b.start ? -1 : 1);
+
+  sorted.forEach(tk => {
+    if (!tk.res) return;
+    const r = getRes(tk.res);
+    const offs = r ? getTimeOffSet(r) : new Set();
+
+    let e = tk.start;
+    while (isWeekend(e) || offs.has(e)) e = addDays(e, 1);
+
+    const lastEnd = resEnd[tk.res];
+    if (lastEnd && lastEnd >= e) {
+      e = addDays(lastEnd, 1);
+      while (isWeekend(e) || offs.has(e)) e = addDays(e, 1);
+    }
+
+    if (tk.start !== e) tk._pinStart = true;
+    tk.start = e;
+    resEnd[tk.res] = calcFinish(tk.start, tk.dur, r);
+  });
+
+  save();
+  render(true);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DELAY SIMULATION (US-13)
+// ═══════════════════════════════════════════════════════════════
+function renderDelaySimulation() {
+  const stories = S.tasks.filter(t => t.kind === 'story');
+  const html = stories.map(s => {
+    const delay = S.delays[s.id] || 0;
+    return `<div class="delay-row">
+      <span class="name">${s.name}</span>
+      <input type="number" min="0" value="${delay}"
+        onchange="S.delays['${s.id}']=parseInt(this.value)||0;save()"/>
+      <span style="font-size:10px;color:var(--text3)">days</span>
+    </div>`;
+  }).join('') || '<div style="color:var(--text3);font-size:11px">No stories to simulate.</div>';
+
+  document.getElementById('delay-list').innerHTML = html;
+}
+
+function applyDelays() {
+  const origEnd = projectEnd();
+  const log = [];
+
+  // Apply delays to stories and cascade
+  S.tasks.forEach(t => {
+    if (t.kind !== 'story') return;
+    const delay = S.delays[t.id] || 0;
+    if (delay > 0) {
+      const oldStart = t.start;
+      t.start = addDays(t.start, delay);
+      log.push(`${t.name}: +${delay}d → ${t.start}`);
+
+      // Cascade to children
+      const idx = S.tasks.indexOf(t);
+      for (let j = idx + 1; j < S.tasks.length; j++) {
+        if (S.tasks[j].lv <= t.lv) break;
+        S.tasks[j].start = addDays(S.tasks[j].start, delay);
+      }
+    }
+  });
+
+  schedAll();
+  save();
+  render();
+
+  const newEnd = projectEnd();
+  document.getElementById('delay-info').style.display = 'block';
+  document.getElementById('orig-end').textContent = origEnd;
+  document.getElementById('new-end').textContent = newEnd;
+  document.getElementById('delay-log').innerHTML = log.length
+    ? log.map(l => `<div style="margin-top:4px">• ${l}</div>`).join('')
+    : '<div style="color:var(--text3)">No delays applied.</div>';
+}
+
+function resetDelays() {
+  S.delays = {};
+  document.getElementById('delay-info').style.display = 'none';
+  save();
+  renderDelaySimulation();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROJECT DATES
+// ═══════════════════════════════════════════════════════════════
+function projectStart() {
+  const starts = S.tasks.map(t => t.start).filter(Boolean);
+  return starts.length ? starts.reduce((a, b) => a < b ? a : b) : S.proj.start;
+}
+
+function projectEnd() {
+  // Use configured end date if set, otherwise calculate from tasks
+  const taskEnds = S.tasks.map(t => {
+    if (t.kind === 'milestone') return t.start;
+    return calcFinish(t.start, t.dur, getRes(t.res));
+  }).filter(Boolean);
+  const calcEnd = taskEnds.length ? taskEnds.reduce((a, b) => a > b ? a : b) : addDays(S.proj.start, 60);
+
+  // If project end date is configured, use the later of configured or calculated
+  if (S.proj.end) {
+    return S.proj.end > calcEnd ? S.proj.end : calcEnd;
+  }
+  return calcEnd;
+}
+
+// Get configured project end (for capacity calculation)
+function projectEndConfigured() {
+  return S.proj.end || projectEnd();
+}
+
+function getAllDays() {
+  const ps = projectStart();
+  const pe = projectEnd();
+
+  const start = new Date(ps + 'T12:00:00');
+  const end = new Date(pe + 'T12:00:00');
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    return [today()];
+  }
+
+  end.setDate(end.getDate() + 14);
+
+  const days = [];
+  const c = new Date(start);
+  let guard = 0;
+  const maxDays = 400; // Safety limit
+
+  while (c <= end && guard < maxDays) {
+    days.push(c.toISOString().slice(0, 10));
+    c.setDate(c.getDate() + 1);
+    guard++;
+  }
+
+  return days;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VISIBLE TASKS (respects collapse)
+// ═══════════════════════════════════════════════════════════════
+function visibleTasks() {
+  // When a resource filter is active, build the set of allowed tasks:
+  // the resource's own tasks/milestones plus their ancestor PRDs/Stories.
+  let allowed = null;
+  if (S.resFilter) {
+    allowed = new Set();
+    for (let i = 0; i < S.tasks.length; i++) {
+      const t = S.tasks[i];
+      if (t.res === S.resFilter && (t.kind === 'task' || t.kind === 'milestone')) {
+        allowed.add(t.id);
+        let lv = t.lv;
+        for (let j = i - 1; j >= 0 && lv > 0; j--) {
+          if (S.tasks[j].lv < lv) {
+            allowed.add(S.tasks[j].id);
+            lv = S.tasks[j].lv;
+          }
+        }
+      }
+    }
+  }
+
+  const vis = [];
+  let skipLevel = -1;
+
+  for (const t of S.tasks) {
+    if (skipLevel >= 0 && t.lv > skipLevel) continue;
+    skipLevel = -1;
+    if (allowed && !allowed.has(t.id)) continue;
+    vis.push(t);
+    // Ignore collapsed parents while filtering — show every match in context.
+    if (!allowed && (t.kind === 'prd' || t.kind === 'story') && t.col) {
+      skipLevel = t.lv;
+    }
+  }
+
+  return vis;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TASK OPERATIONS
+// ═══════════════════════════════════════════════════════════════
+function selIdx() { return S.tasks.findIndex(t => t.id === S.selId); }
+function sel(id) { S.selId = id; render(); }
+
+function addRow(kind) {
+  const idx = selIdx();
+  const ins = idx >= 0 ? idx : S.tasks.length - 1;
+
+  let lv = 0;
+  if (kind === 'story') lv = 1;
+  else if (kind === 'task' || kind === 'milestone') lv = 2;
+
+  if (ins >= 0 && S.tasks[ins]) {
+    const curr = S.tasks[ins];
+    if (kind === 'task' && curr.kind === 'story') lv = 2;
+    else if (kind === 'task' && curr.kind === 'prd') lv = 2;
+    else if (kind === 'story' && curr.kind === 'prd') lv = 1;
+  }
+
+  const start = ins >= 0 && S.tasks[ins] ? S.tasks[ins].start : S.proj.start;
+
+  const t = {
+    id: uid(),
+    name: kind === 'prd' ? 'New PRD' : kind === 'story' ? 'New Story' : kind === 'milestone' ? 'Milestone' : 'New Task',
+    kind,
+    lv,
+    start,
+    dur: kind === 'milestone' ? 0 : 5,
+    sz: '',
+    pct: 0,
+    pred: '',
+    res: '',
+    dl: '',
+    ttype: kind === 'task' ? 'Dev' : '',
+    notes: '',
+    col: false
+  };
+
+  S.tasks.splice(ins + 1, 0, t);
+  S.selId = t.id;
+  schedAll();
+  save();
+  render();
+}
+
+function delRow() {
+  const idx = selIdx();
+  if (idx < 0) return;
+
+  const t = S.tasks[idx];
+  const toRemove = [idx];
+
+  // If PRD or story, also delete children
+  if (t.kind === 'prd' || t.kind === 'story') {
+    for (let i = idx + 1; i < S.tasks.length; i++) {
+      if (S.tasks[i].lv > t.lv) toRemove.push(i);
+      else break;
+    }
+  }
+
+  toRemove.reverse().forEach(i => S.tasks.splice(i, 1));
+  S.selId = S.tasks[Math.min(idx, S.tasks.length - 1)]?.id || null;
+  schedAll();
+  save();
+  render();
+}
+
+function indent(dir) {
+  const idx = selIdx();
+  if (idx < 0) return;
+  S.tasks[idx].lv = clamp(S.tasks[idx].lv + dir, 0, 2);
+  schedAll();
+  save();
+  render();
+}
+
+// Move row up or down with children
+function moveRow(dir) {
+  const idx = selIdx();
+  if (idx < 0) return;
+
+  const t = S.tasks[idx];
+  const myLevel = t.lv;
+
+  // Find all children (items with higher level immediately following)
+  function getBlockSize(startIdx) {
+    const item = S.tasks[startIdx];
+    let size = 1;
+    if (item.kind === 'prd' || item.kind === 'story') {
+      for (let i = startIdx + 1; i < S.tasks.length; i++) {
+        if (S.tasks[i].lv > item.lv) size++;
+        else break;
+      }
+    }
+    return size;
+  }
+
+  const blockSize = getBlockSize(idx);
+  const blockStart = idx;
+  const blockEnd = idx + blockSize - 1;
+
+  if (dir === -1) {
+    // Move up
+    if (blockStart === 0) return; // Already at top
+
+    // Find the previous sibling (item at same level or parent level)
+    // We need to find where the block above us starts
+    let prevIdx = blockStart - 1;
+
+    // The item directly above could be:
+    // 1. A sibling (same level) - we swap with its block
+    // 2. A child of a sibling above - we need to find that sibling
+    // 3. Our parent (lower level) - can't move up further within parent
+
+    const prevItem = S.tasks[prevIdx];
+
+    if (prevItem.lv < myLevel) {
+      // It's our parent or ancestor - can't move up
+      return;
+    }
+
+    // Find the start of the sibling block above us
+    // Go back to find an item at our level or lower
+    let siblingStart = prevIdx;
+    while (siblingStart > 0 && S.tasks[siblingStart].lv > myLevel) {
+      siblingStart--;
+    }
+
+    // If we found something at a lower level, it's our parent - check next item
+    if (S.tasks[siblingStart].lv < myLevel) {
+      siblingStart++; // Move to first child (sibling)
+    }
+
+    // Now siblingStart points to the sibling block's start
+    if (siblingStart >= blockStart) return; // Safety check
+
+    // Get sibling block size
+    const siblingBlockSize = getBlockSize(siblingStart);
+
+    // Extract our block
+    const block = S.tasks.splice(blockStart, blockSize);
+    // Insert before sibling
+    S.tasks.splice(siblingStart, 0, ...block);
+
+  } else {
+    // Move down
+    if (blockEnd >= S.tasks.length - 1) return; // Already at bottom
+
+    // Find what's below our block
+    const nextIdx = blockEnd + 1;
+    const nextItem = S.tasks[nextIdx];
+
+    // If next item is at a lower level (leaving parent scope), don't move
+    if (nextItem.lv < myLevel) {
+      return;
+    }
+
+    // Get the block size of the next sibling
+    const nextBlockSize = getBlockSize(nextIdx);
+
+    // Extract our block
+    const block = S.tasks.splice(blockStart, blockSize);
+    // Insert after the next block
+    const insertAt = blockStart + nextBlockSize;
+    S.tasks.splice(insertAt, 0, ...block);
+  }
+
+  schedAll();
+  save();
+  render();
+}
+
+function toggleCol(id) {
+  const t = taskById(id);
+  if (t && (t.kind === 'prd' || t.kind === 'story')) {
+    t.col = !t.col;
+    save();
+    render();
+  }
+}
+
+function recalcSchedule() {
+  S.tasks.forEach(t => { delete t._pinStart; });
+  schedAll();
+  save();
+  render();
+}
+
+// Expand any collapsed ancestors of a task, select it, and scroll it
+// into view in both the grid and the chart.
+function focusTask(id) {
+  const idx = S.tasks.findIndex(t => t.id === id);
+  if (idx < 0) return;
+  const target = S.tasks[idx];
+
+  // Walk upward and uncollapse any ancestor PRD/Story whose level is below ours
+  let lv = target.lv;
+  for (let i = idx - 1; i >= 0 && lv > 0; i--) {
+    const a = S.tasks[i];
+    if (a.lv < lv && (a.kind === 'prd' || a.kind === 'story')) {
+      if (a.col) a.col = false;
+      lv = a.lv;
+    }
+  }
+
+  S.selId = id;
+  save();
+  render();
+
+  // After render, scroll the row into view in both panes
+  requestAnimationFrame(() => {
+    const grid = document.getElementById('grid-body-outer');
+    const chart = document.getElementById('chart-body-outer');
+    const row = document.querySelector(`.tr[data-id="${id}"]`);
+    if (grid && row) {
+      const rowTop = row.offsetTop;
+      const top = Math.max(0, rowTop - grid.clientHeight / 2 + row.offsetHeight / 2);
+      grid.scrollTop = top;
+      if (chart) chart.scrollTop = top;
+    }
+  });
+}
+
+function toggleCritical() {
+  S.showCrit = !S.showCrit;
+  document.getElementById('crit-btn').classList.toggle('crit-on', S.showCrit);
+  if (S.showCrit) calcCriticalPath();
+  save();
+  render();
+}
+
+function zoomIn() { S.zoom = Math.min(60, S.zoom + 4); render(); }
+function zoomOut() { S.zoom = Math.max(14, S.zoom - 4); render(); }
+
+// Inline commit
+function commit(id, field, val) {
+  const t = taskById(id);
+  if (!t) return;
+
+  switch (field) {
+    case 'name': t.name = val || t.name; break;
+    case 'dur':
+      const v = parseInt(val);
+      if (v >= 0) { t.dur = v; t.sz = ''; }
+      break;
+    case 'start': if (val) { t.start = val; delete t._pinStart; } break;
+    case 'pred': t.pred = val.trim(); break;
+    case 'pct': t.pct = clamp(parseInt(val) || 0, 0, 100); break;
+    case 'res': t.res = val; break;
+    case 'ttype': t.ttype = val; break;
+    case 'sz': t.sz = val; break;
+  }
+
+  schedAll();
+  save();
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BAR DRAGGING
+// ═══════════════════════════════════════════════════════════════
+let dragId = null, dragStartX = 0;
+
+function barDrag(e, id) {
+  if (e.target.classList.contains('gbar-rh')) return;
+  e.preventDefault();
+
+  const t = taskById(id);
+  if (!t || t.kind === 'prd' || t.kind === 'story') return;
+
+  dragId = id;
+  dragStartX = e.clientX;
+
+  document.onmousemove = ev => {
+    const bar = document.querySelector(`.gbar[data-id="${dragId}"]`);
+    if (bar) {
+      const dx = ev.clientX - dragStartX;
+      bar.style.left = (parseInt(bar.style.left) + dx) + 'px';
+      dragStartX = ev.clientX;
+    }
+  };
+
+  document.onmouseup = ev => {
+    const bar = document.querySelector(`.gbar[data-id="${dragId}"]`);
+    const t = taskById(dragId);
+
+    if (t && bar) {
+      const ps = projectStart();
+      const newOff = Math.round(parseInt(bar.style.left) / S.zoom);
+      const rawDate = addDays(ps, newOff);
+      t.start = nextWorkDay(rawDate, getRes(t.res));
+      delete t._pinStart;
+    }
+
+    dragId = null;
+    document.onmousemove = null;
+    document.onmouseup = null;
+    schedAll();
+    save();
+    render();
+  };
+}
+
+let resizeId = null, resizeStartX = 0, resizeStartDur = 0;
+
+function barResize(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const t = taskById(id);
+  if (!t) return;
+
+  resizeId = id;
+  resizeStartX = e.clientX;
+  resizeStartDur = t.dur;
+
+  document.onmousemove = ev => {
+    const nd = Math.max(1, resizeStartDur + Math.round((ev.clientX - resizeStartX) / S.zoom));
+    const bar = document.querySelector(`.gbar[data-id="${resizeId}"]`);
+    if (bar) bar.style.width = (nd * S.zoom) + 'px';
+  };
+
+  document.onmouseup = ev => {
+    const nd = Math.max(1, resizeStartDur + Math.round((ev.clientX - resizeStartX) / S.zoom));
+    const t = taskById(resizeId);
+    if (t) { t.dur = nd; t.sz = ''; }
+
+    resizeId = null;
+    document.onmousemove = null;
+    document.onmouseup = null;
+    schedAll();
+    save();
+    render();
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SPLITTER
+// ═══════════════════════════════════════════════════════════════
+let splitting = false, splitStartX = 0, splitStartW = 0;
+
+document.getElementById('splitter').addEventListener('mousedown', e => {
+  splitting = true;
+  splitStartX = e.clientX;
+  splitStartW = document.getElementById('left-panel').offsetWidth;
+  document.getElementById('splitter').classList.add('active');
+
+  document.onmousemove = ev => {
+    if (!splitting) return;
+    const nw = clamp(splitStartW + (ev.clientX - splitStartX), 300, 1000);
+    document.getElementById('left-panel').style.width = nw + 'px';
+  };
+
+  document.onmouseup = () => {
+    splitting = false;
+    document.getElementById('splitter').classList.remove('active');
+    document.onmousemove = null;
+    document.onmouseup = null;
+  };
+});
+
+// ═══════════════════════════════════════════════════════════════
+// SYNCHRONIZED SCROLL
+// ═══════════════════════════════════════════════════════════════
+function bindScroll() {
+  const grid = document.getElementById('grid-body-outer');
+  const chart = document.getElementById('chart-body-outer');
+  const chartHdr = document.getElementById('chart-hdr');
+  let scrolling = false;
+
+  // Sync vertical scroll between grid and chart
+  grid.addEventListener('scroll', () => {
+    if (scrolling) return;
+    scrolling = true;
+    chart.scrollTop = grid.scrollTop;
+    scrolling = false;
+  });
+
+  // Sync vertical scroll + horizontal scroll for header
+  chart.addEventListener('scroll', () => {
+    if (scrolling) return;
+    scrolling = true;
+    grid.scrollTop = chart.scrollTop;
+    chartHdr.scrollLeft = chart.scrollLeft; // Sync header horizontal scroll
+    scrolling = false;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONTEXT MENU
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('click', () => {
+  document.getElementById('ctx').style.display = 'none';
+});
+
+function showCtx(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  sel(id);
+  const ctx = document.getElementById('ctx');
+  ctx.style.display = 'block';
+  ctx.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
+  ctx.style.top = Math.min(e.clientY, window.innerHeight - 250) + 'px';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+  if (e.key === 'Delete') delRow();
+  if (e.key === 'Insert') addRow('task');
+  if (e.key === '+' || e.key === '=') zoomIn();
+  if (e.key === '-') zoomOut();
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); exportJSON(); }
+  if (e.key === 'ArrowDown') {
+    const idx = selIdx();
+    if (idx < S.tasks.length - 1) sel(S.tasks[idx + 1].id);
+  }
+  if (e.key === 'ArrowUp') {
+    const idx = selIdx();
+    if (idx > 0) sel(S.tasks[idx - 1].id);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════════════════════
+function closeM(m) { document.getElementById('m-' + m).style.display = 'none'; }
+
+function openTaskModal(id) {
+  const tid = id || S.selId;
+  if (!tid) return;
+  const t = taskById(tid);
+  if (!t) return;
+
+  document.getElementById('mt-id').value = t.id;
+  document.getElementById('mt-title').textContent = 'Edit: ' + t.name;
+  document.getElementById('mt-name').value = t.name;
+  document.getElementById('mt-kind').value = t.kind;
+  document.getElementById('mt-start').value = t.start;
+  document.getElementById('mt-dur').value = t.dur || 0;
+  document.getElementById('mt-pct').value = t.pct || 0;
+  document.getElementById('mt-pred').value = t.pred || '';
+  document.getElementById('mt-dl').value = t.dl || '';
+  document.getElementById('mt-notes').value = t.notes || '';
+
+  const rs = document.getElementById('mt-res');
+  rs.innerHTML = '<option value="">— none —</option>' +
+    S.resources.map(r => `<option value="${r.id}"${r.id === t.res ? ' selected' : ''}>${r.name}</option>`).join('');
+
+  const ss = document.getElementById('mt-size');
+  ss.innerHTML = '<option value="">— none —</option>' +
+    S.sizes.map(s => `<option value="${s.id}"${s.id === t.sz ? ' selected' : ''}>${s.label} (${s.days}d)</option>`).join('');
+
+  const ts = document.getElementById('mt-ttype');
+  ts.innerHTML = '<option value="">— none —</option>' +
+    S.taskTypes.map(tt => `<option value="${tt}"${tt === t.ttype ? ' selected' : ''}>${tt}</option>`).join('');
+
+  document.getElementById('m-task').style.display = 'block';
+  setTimeout(() => document.getElementById('mt-name').focus(), 50);
+}
+
+function saveTaskModal() {
+  const id = document.getElementById('mt-id').value;
+  const t = taskById(id);
+  if (!t) return;
+
+  t.name = document.getElementById('mt-name').value || t.name;
+  t.kind = document.getElementById('mt-kind').value;
+  t.start = document.getElementById('mt-start').value || t.start;
+  t.sz = document.getElementById('mt-size').value;
+
+  const dv = parseInt(document.getElementById('mt-dur').value);
+  t.dur = t.sz ? getSize(t.sz)?.days || dv : dv;
+
+  t.pct = clamp(parseInt(document.getElementById('mt-pct').value) || 0, 0, 100);
+  t.pred = document.getElementById('mt-pred').value.trim();
+  t.res = document.getElementById('mt-res').value;
+  t.dl = document.getElementById('mt-dl').value;
+  t.ttype = document.getElementById('mt-ttype').value;
+  t.notes = document.getElementById('mt-notes').value;
+
+  if (t.kind === 'milestone') t.dur = 0;
+  if ((t.kind === 'prd' || t.kind === 'story') && t.col === undefined) t.col = false;
+
+  closeM('task');
+  schedAll();
+  save();
+  render();
+}
+
+// Resource modal
+let tmpTimeoff = [], editResId = null;
+
+function openResModal(id) {
+  editResId = id || null;
+  const r = id ? JSON.parse(JSON.stringify(getRes(id))) : null;
+  tmpTimeoff = r ? [...(r.timeoff || [])] : [];
+
+  document.getElementById('mr-id').value = id || '';
+  document.getElementById('mr-title').textContent = id ? 'Edit Resource' : 'Add Resource';
+  document.getElementById('mr-name').value = r ? r.name : '';
+  document.getElementById('mr-role').value = r ? r.role : '';
+
+  const cs = document.getElementById('mr-color');
+  cs.innerHTML = COLOR_NAMES.map(n =>
+    `<option value="${COLORS[n]}"${r && COLORS[n] === r.color ? ' selected' : ''}>${n}</option>`
+  ).join('');
+  if (!r) cs.value = COLOR_VALUES[S.resources.length % COLOR_VALUES.length];
+
+  document.getElementById('mr-from').value = '';
+  document.getElementById('mr-to').value = '';
+  renderTimeoffRanges();
+  document.getElementById('m-res').style.display = 'block';
+}
+
+function renderTimeoffRanges() {
+  const html = tmpTimeoff.map((r, i) => {
+    const days = workDaysBetween(r.from, r.to, null);
+    return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:11px">
+      <span style="flex:1"><b>${r.from}</b> → <b>${r.to}</b> (${days} working days)</span>
+      <button class="mbtn" style="height:20px;padding:0 6px;font-size:10px" onclick="tmpTimeoff.splice(${i},1);renderTimeoffRanges()">✕</button>
+    </div>`;
+  }).join('') || '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">No time off.</div>';
+  document.getElementById('mr-ranges').innerHTML = html;
+}
+
+function addTR() {
+  const f = document.getElementById('mr-from').value;
+  const t = document.getElementById('mr-to').value;
+  if (!f || !t || t < f) { alert('Invalid date range'); return; }
+  tmpTimeoff.push({ from: f, to: t });
+  renderTimeoffRanges();
+  document.getElementById('mr-from').value = '';
+  document.getElementById('mr-to').value = '';
+}
+
+function saveRes() {
+  const id = document.getElementById('mr-id').value;
+  const obj = {
+    id: id || uid(),
+    name: document.getElementById('mr-name').value || 'Resource',
+    role: document.getElementById('mr-role').value,
+    color: document.getElementById('mr-color').value,
+    timeoff: tmpTimeoff
+  };
+
+  if (id) {
+    const i = S.resources.findIndex(r => r.id === id);
+    if (i >= 0) S.resources[i] = obj;
+  } else {
+    S.resources.push(obj);
+  }
+
+  closeM('res');
+  save();
+  renderSidebar();
+  render();
+}
+
+function openProjSettings() {
+  document.getElementById('mp-name').value = S.proj.name;
+  document.getElementById('mp-start').value = S.proj.start;
+  document.getElementById('mp-end').value = S.proj.end || '';
+  document.getElementById('m-proj').style.display = 'block';
+}
+
+function saveProjSet() {
+  S.proj.name = document.getElementById('mp-name').value || S.proj.name;
+  S.proj.start = document.getElementById('mp-start').value || S.proj.start;
+  S.proj.end = document.getElementById('mp-end').value || '';
+  closeM('proj');
+  schedAll();
+  save();
+  render();
+  renderSidebar();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════════════════
+function showSTab(tab) {
+  document.querySelectorAll('.stab').forEach(el => el.classList.toggle('on', el.dataset.tab === tab));
+  ['team', 'capacity', 'delays', 'settings'].forEach(t => {
+    const el = document.getElementById('stab-' + t);
+    if (el) el.style.display = t === tab ? '' : 'none';
+  });
+
+  if (tab === 'capacity') renderCapacity();
+  if (tab === 'delays') renderDelaySimulation();
+  if (tab === 'settings') {
+    document.getElementById('s-pname').value = S.proj.name;
+    document.getElementById('s-pstart').value = S.proj.start;
+    document.getElementById('s-pend').value = S.proj.end || '';
+    document.getElementById('zoom-r').value = S.zoom;
+    // Calculate duration
+    const pe = projectEndConfigured();
+    const dur = workDaysBetween(S.proj.start, pe, null);
+    document.getElementById('s-duration').textContent = dur + ' (~' + Math.round(dur / 5) + ' weeks)';
+  }
+}
+
+function renderSidebar() {
+  // Resources
+  document.getElementById('res-list').innerHTML = S.resources.map(r => `
+    <div class="res-card">
+      <div class="res-name">
+        <div class="cdot" style="background:${r.color}" onclick="openResModal('${r.id}')"></div>
+        <span style="flex:1">${r.name}</span>
+        <span style="font-size:10px;color:var(--text3)">${r.role}</span>
+        <button style="border:none;background:none;cursor:pointer;color:var(--text3)" onclick="openResModal('${r.id}')">✏</button>
+        <button style="border:none;background:none;cursor:pointer;color:var(--red)" onclick="if(confirm('Delete?')){S.resources=S.resources.filter(x=>x.id!=='${r.id}');save();renderSidebar();render();}">✕</button>
+      </div>
+    </div>`).join('');
+
+  // Sizes
+  document.getElementById('size-list').innerHTML = S.sizes.map((s, i) => `
+    <div class="sr">
+      <input style="width:40px" value="${s.label}" onchange="S.sizes[${i}].label=this.value;save()"/>
+      <input type="number" style="width:50px" value="${s.days}" onchange="S.sizes[${i}].days=+this.value;save()"/>
+      <span style="font-size:10px;color:var(--text3)">days</span>
+    </div>`).join('');
+
+  // Types
+  document.getElementById('type-list').innerHTML = S.taskTypes.map((t, i) => `
+    <div class="sr">
+      <div style="width:10px;height:10px;border-radius:50%;background:${typeColor(t)}"></div>
+      <input value="${t}" style="flex:1" onchange="S.taskTypes[${i}]=this.value;save();renderSidebar()"/>
+      <button style="border:none;background:none;cursor:pointer;color:var(--red)" onclick="S.taskTypes.splice(${i},1);save();renderSidebar()">✕</button>
+    </div>`).join('') +
+    '<button class="tb" style="width:100%;margin-top:4px" onclick="S.taskTypes.push(\'New\');save();renderSidebar()">+ Type</button>';
+
+  // Conflicts
+  const conflicts = detectConflicts();
+  document.getElementById('conflict-count').textContent = conflicts.length > 0 ? `(${conflicts.length})` : '';
+  document.getElementById('conflict-list').innerHTML = conflicts.length
+    ? conflicts.map(c => `<div class="conflict-item"><b>${c.resource}</b>: <a class="conflict-task" onclick="focusTask('${c.task1Id}')">${c.task1}</a> ↔ <a class="conflict-task" onclick="focusTask('${c.task2Id}')">${c.task2}</a></div>`).join('')
+    : '<div style="font-size:11px;color:var(--green)">No conflicts ✓</div>';
+}
+
+function renderCapacity() {
+  // Use configured project period for capacity calculation
+  const ps = S.proj.start;
+  const pe = projectEndConfigured();
+  const projDays = workDaysBetween(ps, pe, null);
+
+  const activeRes = S.resFilter ? getRes(S.resFilter) : null;
+
+  // Clear-filter button (always present; disabled when nothing is selected).
+  let html = `<button class="cap-clear-btn" onclick="clearResFilter()" ${activeRes ? '' : 'style="opacity:.5;cursor:default" disabled'}>
+    ✕ ${activeRes ? `Clear filter (${activeRes.name})` : 'No filter active'}
+  </button>`;
+
+  if (activeRes) {
+    html += `<div class="cap-filter-banner">
+      <div class="cdot" style="background:${activeRes.color}"></div>
+      <span>Showing only <b>${activeRes.name}</b>'s timeline</span>
+    </div>`;
+  }
+
+  // Header showing project period
+  html += `<div style="font-size:10px;color:var(--text2);margin-bottom:8px;padding:6px;background:var(--bg4);border-radius:3px">
+    <div><b>Project Period:</b> ${formatDate(ps)} → ${formatDate(pe)}</div>
+    <div><b>Working Days:</b> ${projDays} (~${Math.round(projDays/5)} weeks)</div>
+  </div>`;
+
+  html += S.resources.map(r => {
+    const tasks = S.tasks.filter(t => t.res === r.id && t.kind === 'task');
+    const assigned = tasks.reduce((s, t) => s + (t.dur || 0), 0);
+    const offs = getTimeOffSet(r);
+    // Calculate available days for this resource (project days minus their time-off)
+    const toffCount = offs.size;
+    const avail = projDays - toffCount;
+    const pct = avail > 0 ? Math.round((assigned / avail) * 100) : 0;
+    const col = pct > 100 ? '#f44336' : pct > 85 ? '#FF9800' : '#4CAF50';
+    const isActive = S.resFilter === r.id;
+
+    return `<div class="res-card${isActive ? ' active' : ''}" onclick="setResFilter('${r.id}')" title="Click to show only ${r.name}'s tasks">
+      <div class="res-name">
+        <div class="cdot" style="background:${r.color}"></div>
+        <span style="flex:1">${r.name}</span>
+        ${toffCount ? `<span style="font-size:10px;color:var(--amber)">${toffCount}d off</span>` : ''}
+      </div>
+      <div class="res-cap">
+        <span style="color:${col};font-weight:600">${pct}%</span>
+        <span>${assigned}d / ${avail}d avail</span>
+      </div>
+      <div class="cap-bar"><div class="cap-fill" style="width:${Math.min(100, pct)}%;background:${col}"></div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('cap-list').innerHTML = html || '<div style="font-size:11px;color:var(--text3)">No resources.</div>';
+}
+
+function setResFilter(id) {
+  S.resFilter = S.resFilter === id ? null : id;
+  save();
+  renderCapacity();
+  render();
+}
+
+function clearResFilter() {
+  if (!S.resFilter) return;
+  S.resFilter = null;
+  save();
+  renderCapacity();
+  render();
+}
+
+function renderHdr() {
+  document.getElementById('proj-name-lbl').textContent = S.proj.name || '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN RENDER
+// ═══════════════════════════════════════════════════════════════
+function render(forwardSched = false) {
+  schedAll(forwardSched);
+  if (S.showCrit) calcCriticalPath();
+  const conflicts = detectConflicts();
+
+  const dW = S.zoom;
+  const ROW = 24;
+  const ps = projectStart();
+  const days = getAllDays();
+  const total = days.length * dW;
+  const td = today();
+  const todayOff = daysDiff(ps, td);
+  const vis = visibleTasks();
+
+  // Update counts
+  document.getElementById('prd-count').textContent = S.tasks.filter(t => t.kind === 'prd').length;
+  document.getElementById('story-count').textContent = S.tasks.filter(t => t.kind === 'story').length;
+  document.getElementById('task-count').textContent = S.tasks.filter(t => t.kind === 'task').length;
+  document.getElementById('zoom-lbl').textContent = dW + 'px';
+  document.getElementById('st-info').textContent = `${S.tasks.length} items | End: ${projectEnd()}`;
+  renderHdr();
+
+  // Chart header
+  const months = {};
+  days.forEach((d, i) => {
+    const m = d.slice(0, 7);
+    if (!months[m]) months[m] = i;
+  });
+
+  let monthsHtml = Object.entries(months).map(([m, i]) =>
+    `<div style="position:absolute;bottom:22px;left:${i * dW}px;font-size:11px;font-weight:600;color:#999;border-left:1px solid #555;padding-left:4px">
+      ${new Date(m + '-01').toLocaleString('default', { month: 'short', year: 'numeric' })}</div>`
+  ).join('');
+
+  let daysHtml = days.map((d, i) => {
+    const dt = new Date(d + 'T12:00:00');
+    const wd = dt.getDay();
+    const isToday = d === td;
+    const wk = wd === 5 || wd === 6;
+    const bg = wk ? 'rgba(0,0,0,.25)' : isToday ? 'rgba(33,150,243,.15)' : 'transparent';
+    // Show day number for ALL days
+    const dayNum = dt.getDate();
+    const dayColor = isToday ? '#2196F3' : wk ? '#555' : '#888';
+    const txt = `<span style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-size:${dW > 20 ? 9 : 8}px;color:${dayColor}">${dayNum}</span>`;
+    return `<div style="position:absolute;top:0;bottom:0;left:${i * dW}px;width:${dW}px;background:${bg};border-right:1px solid #3a3a3a">${txt}</div>`;
+  }).join('');
+
+  document.getElementById('chart-hdr').innerHTML = `<div style="position:relative;height:100%;min-width:${total}px">${monthsHtml}${daysHtml}</div>`;
+
+  // Grid rows and chart
+  let gridHtml = '';
+  let chartRows = '';
+  let chartBars = '';
+  const depLinks = [];
+
+  // Day backgrounds
+  const dayBg = days.map((d, i) => {
+    const wd = new Date(d + 'T12:00:00').getDay();
+    const wk = wd === 5 || wd === 6;
+    const isToday = d === td;
+    if (!wk && !isToday) return '';
+    return `<div class="daybg ${wk ? 'wk' : 'tod'}" style="left:${i * dW}px;width:${dW}px;height:${vis.length * ROW + 100}px"></div>`;
+  }).join('');
+
+  const todayLine = todayOff >= 0 && todayOff < days.length
+    ? `<div class="today-line" style="left:${todayOff * dW + dW / 2}px;height:${vis.length * ROW + 100}px"></div>`
+    : '';
+
+  vis.forEach((t, vi) => {
+    const seq = S.tasks.indexOf(t) + 1;
+    const isSel = t.id === S.selId;
+    const r = getRes(t.res);
+    const fin = t.kind === 'milestone' ? t.start : calcFinish(t.start, t.dur, r);
+    const isCrit = S.showCrit && t._crit;
+    const isConflict = t._conflict;
+    const isPrd = t.kind === 'prd';
+    const isStory = t.kind === 'story';
+    const isMilestone = t.kind === 'milestone';
+    const isTask = t.kind === 'task';
+
+    const ind = t.lv * 16;
+
+    // Expand button for PRDs and Stories
+    const expBtn = (isPrd || isStory)
+      ? `<div class="expand-btn" onclick="event.stopPropagation();toggleCol('${t.id}')">${t.col ? '▸' : '▾'}</div>`
+      : '<span style="display:inline-block;width:14px"></span>';
+
+    const msIcon = isMilestone ? '<span class="ms-icon">◆</span>' : '';
+
+    // Type badge
+    const typeBadge = t.ttype
+      ? `<span class="type-badge" style="background:${typeColor(t.ttype)}">${t.ttype}</span>`
+      : '';
+
+    // Size badge with variance
+    let sizeBadge = '';
+    if (t.sz) {
+      const sz = getSize(t.sz);
+      if (sz) {
+        const variance = t.dur - sz.days;
+        let varHtml = '';
+        if (variance > 0) varHtml = `<span class="variance over">+${variance}d</span>`;
+        else if (variance < 0) varHtml = `<span class="variance under">${variance}d</span>`;
+        sizeBadge = `<span class="size-badge">${sz.label}</span>${varHtml}`;
+      }
+    }
+
+    const rowClass = `tr${isSel ? ' sel' : ''}${isPrd ? ' prd-row' : ''}${isStory ? ' story-row' : ''}${isConflict ? ' conflict' : ''}`;
+    const nameStyle = `${isPrd || isStory ? 'font-weight:600;' : ''}${isCrit ? 'color:#ff6b6b;' : ''}`;
+
+    const resOpts = '<option value="">—</option>' +
+      S.resources.map(rv => `<option value="${rv.id}"${rv.id === t.res ? ' selected' : ''}>${rv.name}</option>`).join('');
+
+    const typeOpts = '<option value="">—</option>' +
+      S.taskTypes.map(tt => `<option value="${tt}"${tt === t.ttype ? ' selected' : ''}>${tt}</option>`).join('');
+
+    const sizeOpts = '<option value="">—</option>' +
+      S.sizes.map(sz => `<option value="${sz.id}"${sz.id === t.sz ? ' selected' : ''}>${sz.label}</option>`).join('');
+
+    gridHtml += `<div class="${rowClass}" data-id="${t.id}" style="height:${ROW}px"
+      onclick="sel('${t.id}')" ondblclick="openTaskModal('${t.id}')" oncontextmenu="showCtx(event,'${t.id}')">
+      <div class="tc tc-id" style="width:var(--col-id)">${seq}</div>
+      <div class="tc" style="width:var(--col-name);padding-left:${ind + 4}px">
+        ${expBtn}${msIcon}
+        <input value="${t.name.replace(/"/g, '&quot;')}" style="${nameStyle}flex:1"
+          onfocus="this.select()" onclick="event.stopPropagation()"
+          onblur="commit('${t.id}','name',this.value)" onkeydown="if(event.key==='Enter')this.blur()"/>
+      </div>
+      <div class="tc" style="width:var(--col-type)">
+        <select onchange="commit('${t.id}','ttype',this.value)" onclick="event.stopPropagation()">${typeOpts}</select>
+      </div>
+      <div class="tc" style="width:var(--col-size)">
+        <select onchange="commit('${t.id}','sz',this.value)" onclick="event.stopPropagation()">${sizeOpts}</select>
+      </div>
+      <div class="tc" style="width:var(--col-dur)">
+        <input type="number" value="${t.dur || 0}" min="0" style="text-align:center"
+          ${isPrd || isStory ? 'readonly' : ''} onfocus="this.select()" onclick="event.stopPropagation()"
+          onblur="commit('${t.id}','dur',this.value)"/>
+      </div>
+      <div class="tc" style="width:var(--col-start)">
+        <input type="date" value="${t.start}" onclick="event.stopPropagation()"
+          onblur="commit('${t.id}','start',this.value)"/>
+      </div>
+      <div class="tc tc-fin" style="width:var(--col-fin)">${formatDate(fin)}</div>
+      <div class="tc" style="width:var(--col-pred)">
+        <input value="${t.pred || ''}" style="text-align:center" placeholder="3FS"
+          onfocus="this.select()" onclick="event.stopPropagation()" title="Format: 3FS, 5FF, 2SS, 1SF (default: FS)"
+          onblur="commit('${t.id}','pred',this.value)"/>
+      </div>
+      <div class="tc" style="width:var(--col-res)">
+        <select onchange="commit('${t.id}','res',this.value)" onclick="event.stopPropagation()">${resOpts}</select>
+      </div>
+      <div class="tc tc-pct" style="flex:1">
+        <div class="pct-wrap">
+          <input class="pct-input" type="number" min="0" max="100" value="${t.pct || 0}"
+            onclick="event.stopPropagation()" onfocus="this.select()"
+            onblur="commit('${t.id}','pct',this.value)"/>
+          <div class="pct-bar"><div class="pct-fill" style="width:${t.pct || 0}%"></div></div>
+        </div>
+      </div>
+    </div>`;
+
+    // Chart row highlight
+    chartRows += `<div class="cr${isSel ? ' sel-row' : ''}${isPrd ? ' prd-row' : ''}${isStory ? ' story-row' : ''}" style="top:${vi * ROW}px"></div>`;
+
+    // Chart bar
+    const off = daysDiff(ps, t.start);
+    let barColor = r ? r.color : (t.ttype ? typeColor(t.ttype) : '#4a90d9');
+    if (isCrit && S.showCrit) barColor = '#f44336';
+
+    if (isMilestone) {
+      const x = off * dW + (dW / 2) - 8;
+      const y = vi * ROW + ROW / 2 - 8;
+      chartBars += `<div class="ms-dia" style="left:${x}px;top:${y}px;width:16px;height:16px;background:${isCrit ? '#f44336' : '#FF9800'}"
+        onclick="sel('${t.id}')" ondblclick="openTaskModal('${t.id}')"></div>`;
+    } else {
+      // Bar width should span calendar days (start to finish), not just working days
+      const finDate = calcFinish(t.start, t.dur, r);
+      const calendarDays = daysDiff(t.start, finDate) + 1; // +1 to include both start and end day
+      const bw = Math.max(6, calendarDays * dW);
+      const pw = Math.round((t.pct / 100) * bw);
+
+      // Ghost bar for T-shirt estimate (also in calendar days)
+      let ghostHtml = '';
+      if (t.sz && isTask) {
+        const sz = getSize(t.sz);
+        if (sz && sz.days !== t.dur) {
+          const ghostFinDate = calcFinish(t.start, sz.days, r);
+          const ghostCalDays = daysDiff(t.start, ghostFinDate) + 1;
+          const gw = ghostCalDays * dW;
+          ghostHtml = `<div class="ghost-bar" style="left:${off * dW}px;top:${vi * ROW + 4}px;width:${gw}px;height:${ROW - 8}px"></div>`;
+        }
+      }
+
+      const barCls = `gbar${isPrd ? ' prd-bar' : ''}${isStory ? ' story-bar' : ''}${isConflict ? ' conflict-bar' : ''}`;
+      chartBars += ghostHtml;
+      chartBars += `<div class="${barCls}" data-id="${t.id}" style="left:${off * dW}px;top:${vi * ROW + 4}px;width:${bw}px;height:${ROW - 8}px;background:${barColor}"
+        onmousedown="${isPrd || isStory ? '' : `barDrag(event,'${t.id}')`}"
+        onclick="sel('${t.id}')" ondblclick="openTaskModal('${t.id}')">
+        ${t.pct > 0 && isTask ? `<div class="gbar-pct" style="width:${pw}px"></div>` : ''}
+        <span class="gbar-lbl">${t.name}</span>
+        ${isTask ? `<div class="gbar-rh" onmousedown="barResize(event,'${t.id}')"></div>` : ''}
+      </div>`;
+    }
+
+    // Deadline marker
+    if (t.dl) {
+      const dlo = daysDiff(ps, t.dl);
+      if (dlo >= 0 && dlo < days.length) {
+        const dx = dlo * dW + dW / 2;
+        chartBars += `<div class="dl-line" style="left:${dx}px;top:${vi * ROW}px;height:${ROW}px"></div>
+          <div class="dl-tri" style="left:${dx - 4}px;top:${vi * ROW}px"></div>`;
+      }
+    }
+
+    // Dependencies
+    const preds = parsePreds(t.pred, S.tasks.indexOf(t));
+    preds.forEach(pred => {
+      const pt = S.tasks[pred.idx];
+      if (!pt) return;
+      const pvi = vis.indexOf(pt);
+      if (pvi < 0) return;
+      depLinks.push({ from: pvi, to: vi, fromT: pt, toT: t, isCrit: isCrit && S.showCrit && pt._crit, type: pred.type });
+    });
+  });
+
+  // Dependency arrows SVG
+  let svgHtml = `<svg id="dep-svg" width="${total}" height="${vis.length * ROW + 60}">
+    <defs>
+      <marker id="ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M1 2L9 5L1 8" fill="none" stroke="#666" stroke-width="1.5"/></marker>
+      <marker id="ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M1 2L9 5L1 8" fill="none" stroke="#f44336" stroke-width="1.5"/></marker>
+      <marker id="ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M1 2L9 5L1 8" fill="none" stroke="#9C27B0" stroke-width="1.5"/></marker>
+    </defs>`;
+
+  depLinks.forEach(({ from, to, fromT, toT, isCrit, type }) => {
+    const rf = getRes(fromT.res);
+    const rt = getRes(toT.res);
+    const fromStart = fromT.start;
+    const fromFin = fromT.kind === 'milestone' ? fromT.start : calcFinish(fromT.start, fromT.dur, rf);
+    const toStart = toT.start;
+    const toFin = toT.kind === 'milestone' ? toT.start : calcFinish(toT.start, toT.dur, rt);
+
+    // Determine arrow start/end based on dependency type
+    let x1, x2;
+    const depType = type || 'FS';
+
+    // X1: Start point (from predecessor)
+    if (depType === 'SS' || depType === 'SF') {
+      // Start from predecessor's start
+      x1 = daysDiff(ps, fromStart) * dW;
+    } else {
+      // FS or FF: Start from predecessor's finish
+      x1 = fromT.kind === 'milestone'
+        ? daysDiff(ps, fromStart) * dW + dW / 2 + 8
+        : daysDiff(ps, fromFin) * dW + dW;
+    }
+
+    // X2: End point (to successor)
+    if (depType === 'FF' || depType === 'SF') {
+      // Point to successor's finish
+      x2 = toT.kind === 'milestone'
+        ? daysDiff(ps, toStart) * dW + dW / 2
+        : daysDiff(ps, toFin) * dW + dW;
+    } else {
+      // FS or SS: Point to successor's start
+      x2 = daysDiff(ps, toStart) * dW;
+    }
+
+    const y1 = from * ROW + ROW / 2;
+    const y2 = to * ROW + ROW / 2;
+    const col = isCrit ? '#f44336' : (depType !== 'FS' ? '#9C27B0' : '#666');
+    const marker = isCrit ? 'ah-red' : (depType !== 'FS' ? 'ah-purple' : 'ah-gray');
+
+    if (x2 < x1 + 20) {
+      const maxY = Math.max(y1, y2) + 14;
+      svgHtml += `<path d="M${x1},${y1} L${x1 + 10},${y1} L${x1 + 10},${maxY} L${x2 - 6},${maxY} L${x2 - 6},${y2} L${x2},${y2}"
+        fill="none" stroke="${col}" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#${marker})"/>`;
+    } else {
+      const mx = x1 + Math.max(14, (x2 - x1) * 0.4);
+      svgHtml += `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"
+        fill="none" stroke="${col}" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#${marker})"/>`;
+    }
+  });
+
+  svgHtml += '</svg>';
+
+  // Write to DOM
+  document.getElementById('grid-body').innerHTML = gridHtml;
+  document.getElementById('chart-body').innerHTML = `
+    <div style="position:relative;min-width:${total}px;height:${Math.max(vis.length * ROW, 200)}px">
+      ${dayBg}${todayLine}${chartRows}${chartBars}${svgHtml}
+    </div>`;
+
+  // Update sidebar conflict list
+  renderSidebar();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════
+if (!load()) {
+  loadDefaultData();
+}
+
+schedAll();
+renderHdr();
+renderSidebar();
+render();
+bindScroll();
+
+// Initial tab
+showSTab('team');
+
+console.log('Card Squad Planner loaded successfully');
+</script>
+</body>
+</html>
