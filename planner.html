@@ -479,9 +479,20 @@ body.printing #chart-hdr::-webkit-scrollbar{display:none}
 <!-- NEW PROJECT MODAL -->
 <div id="m-new" style="display:none"><div class="mbg"><div class="mbox" onclick="event.stopPropagation()">
   <h3 id="m-new-title">New Project</h3>
-  <div class="mfr"><label>Project Name</label><input id="mn-name" placeholder="My Project" autofocus/></div>
+
+  <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin:0 0 6px">Open existing project</div>
+  <div class="mfr"><label>JSON file</label><input type="file" accept=".json" id="mn-file" onchange="importJSON(event)"/></div>
+
+  <div style="display:flex;align-items:center;gap:8px;margin:14px 0;color:var(--text3);font-size:11px">
+    <div style="flex:1;height:1px;background:var(--border)"></div>
+    <span>OR</span>
+    <div style="flex:1;height:1px;background:var(--border)"></div>
+  </div>
+
+  <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin:0 0 6px">Create new project</div>
+  <div class="mfr"><label>Project Name</label><input id="mn-name" placeholder="My Project"/></div>
   <div class="mfr"><label>Start Date</label><input type="date" id="mn-start"/></div>
-  <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Name and start date are required to create a project.</div>
+
   <div class="mft">
     <button class="mbtn" id="m-new-cancel" onclick="closeM('new')">Cancel</button>
     <button class="mbtn pri" onclick="createNewProject()">Create</button>
@@ -761,7 +772,10 @@ function importJSON(e) {
       S.resources = S.resources || [];
       S.resources.forEach(r => { if (!r.timeoff) r.timeoff = []; });
       S.delays = S.delays || {};
+      closeM('new');
+      schedAll();
       save();
+      renderHdr();
       render();
       renderSidebar();
     } catch(err) {
@@ -787,10 +801,11 @@ function renameProject() {
 }
 
 function openNewProjectDialog({ isFirstRun }) {
-  document.getElementById('m-new-title').textContent = isFirstRun ? 'Welcome — Create Your Project' : 'New Project';
+  document.getElementById('m-new-title').textContent = isFirstRun ? 'Welcome — Open or Create a Project' : 'New Project';
   document.getElementById('m-new-cancel').style.display = isFirstRun ? 'none' : '';
   document.getElementById('mn-name').value = isFirstRun ? '' : (S.proj.name || '');
   document.getElementById('mn-start').value = isFirstRun ? today() : (S.proj.start || today());
+  document.getElementById('mn-file').value = '';
   document.getElementById('m-new').style.display = 'block';
   setTimeout(() => document.getElementById('mn-name').focus(), 50);
 }
