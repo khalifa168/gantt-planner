@@ -14,7 +14,7 @@
   --sel:#1a6baf;--sel2:#1557a0;
   --blue:#2196F3;--red:#f44336;--green:#4caf50;--amber:#ff9800;--orange:#ff5722;
   --row-h:24px;--hdr-h:44px;
-  --col-id:32px;--col-name:220px;--col-type:70px;--col-size:50px;--col-dur:50px;--col-start:88px;--col-fin:75px;--col-pred:75px;--col-res:95px;--col-pct:60px;
+  --col-id:32px;--col-name:220px;--col-type:70px;--col-size:50px;--col-dur:62px;--col-cons:28px;--col-start:96px;--col-fin:78px;--col-astart:96px;--col-afin:78px;--col-pred:75px;--col-res:95px;--col-pct:60px;
 }
 html,body{height:100%;overflow:hidden;background:var(--bg)}
 body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:var(--text);display:flex;flex-direction:column}
@@ -44,7 +44,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:var(--text);di
 
 /* LAYOUT */
 #main{flex:1;display:flex;overflow:hidden}
-#left-panel{display:flex;flex-direction:column;flex-shrink:0;border-right:2px solid #111;background:var(--bg2);width:700px;min-width:300px;max-width:1000px}
+#left-panel{display:flex;flex-direction:column;flex-shrink:0;border-right:2px solid #111;background:var(--bg2);width:1000px;min-width:300px;max-width:1200px}
 #left-hdr{height:var(--hdr-h);flex-shrink:0;border-bottom:1px solid #111;display:flex;flex-direction:column}
 #left-hdr-top{height:22px;display:flex;align-items:center;background:var(--hdr);border-bottom:1px solid #111;padding:0 6px;font-size:11px;color:var(--text3);gap:12px}
 #left-hdr-cols{flex:1;display:flex;align-items:stretch;background:#3c3c3c}
@@ -78,6 +78,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:var(--text);di
 .tc select{cursor:pointer}
 .tc-id{justify-content:center;color:var(--text3);font-size:10px}
 .tc-fin{color:var(--text2);font-size:10px;justify-content:center}
+.tc-act{color:var(--text2);font-size:10px;justify-content:center}
+.tc-act.shifted{color:var(--amber)}
+.tc-cons{justify-content:center;cursor:pointer;font-size:11px;color:var(--text3);user-select:none}
+.tc-cons:hover{color:var(--text-bright);background:rgba(255,255,255,.04)}
+.tc-cons.asap{color:var(--blue)}
+.tc-cons.pin{color:var(--amber)}
 .tc-pct{padding:2px 3px}
 .pct-wrap{display:flex;flex-direction:column;width:100%;gap:1px}
 .pct-input{height:14px!important;font-size:10px!important;text-align:center}
@@ -313,9 +319,12 @@ body.printing #chart-hdr::-webkit-scrollbar{display:none}
         <div class="gh gh-name" style="width:var(--col-name)">Name</div>
         <div class="gh" style="width:var(--col-type)">Type</div>
         <div class="gh" style="width:var(--col-size)">Size</div>
-        <div class="gh" style="width:var(--col-dur)">Days</div>
-        <div class="gh" style="width:var(--col-start)">Start</div>
-        <div class="gh" style="width:var(--col-fin)">Finish</div>
+        <div class="gh" style="width:var(--col-dur)">Estimate</div>
+        <div class="gh" style="width:var(--col-cons)" title="Constraint: soft / ASAP / pin">⚙</div>
+        <div class="gh" style="width:var(--col-start)">Plan Start</div>
+        <div class="gh" style="width:var(--col-fin)">Plan Fin</div>
+        <div class="gh" style="width:var(--col-astart)">Actual Start</div>
+        <div class="gh" style="width:var(--col-afin)">Actual Fin</div>
         <div class="gh" style="width:var(--col-pred)">Pred</div>
         <div class="gh" style="width:var(--col-res)">Resource</div>
         <div class="gh" style="flex:1">%</div>
@@ -557,7 +566,7 @@ function formatDate(d) {
   if (!d) return '';
   const dt = new Date(d + 'T12:00:00');
   if (isNaN(dt.getTime())) return '';
-  return dt.toLocaleDateString('en-GB', {day:'2-digit', month:'short'});
+  return dt.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'2-digit'});
 }
 
 // Get all time-off days for a resource
@@ -567,7 +576,7 @@ function getTimeOffSet(r) {
   r.timeoff.forEach(range => {
     if (!range.from || !range.to) return;
     let c = range.from, guard = 0;
-    while (c <= range.to && guard < 400) {
+    while (c <= range.to && guard < 2000) {
       if (!isWeekend(c)) s.add(c);
       c = addDays(c, 1);
       guard++;
@@ -594,7 +603,7 @@ function addWorkDays(start, n, r) {
   if (!n || n <= 0) return start;
   const offs = r ? getTimeOffSet(r) : new Set();
   let d = start, cnt = 0, guard = 0;
-  while (cnt < n && guard < 500) {
+  while (cnt < n && guard < 8000) {
     d = addDays(d, 1);
     guard++;
     if (!isWeekend(d) && !offs.has(d)) cnt++;
@@ -608,7 +617,7 @@ function subWorkDays(start, n, r) {
   if (!n || n <= 0) return start;
   const offs = r ? getTimeOffSet(r) : new Set();
   let d = start, cnt = 0, guard = 0;
-  while (cnt < n && guard < 500) {
+  while (cnt < n && guard < 8000) {
     d = addDays(d, -1);
     guard++;
     if (!isWeekend(d) && !offs.has(d)) cnt++;
@@ -628,7 +637,7 @@ function workDaysBetween(s, f, r) {
   if (!s || !f || f < s) return 1;
   const offs = r ? getTimeOffSet(r) : new Set();
   let cnt = 0, d = s, guard = 0;
-  while (d <= f && guard < 500) {
+  while (d <= f && guard < 8000) {
     if (!isWeekend(d) && !offs.has(d)) cnt++;
     d = addDays(d, 1);
     guard++;
@@ -863,7 +872,95 @@ function parsePredIndices(pred, selfIdx) {
   return parsePreds(pred, selfIdx).map(p => p.idx);
 }
 
-function schedAll(forwardOnly = false) {
+// Predecessor-derived earliest start (or null if no predecessors).
+function computePredEnd(t, i) {
+  const r = getRes(t.res);
+  const preds = parsePreds(t.pred, i);
+  if (!preds.length) return null;
+
+  let earliestStart = null;
+  let positionedStart = null;
+  const taskDur = t.dur || 1;
+
+  preds.forEach(pred => {
+    const pt = S.tasks[pred.idx];
+    if (!pt) return;
+    const predRes = getRes(pt.res);
+    const predStart = pt.actStart || pt.start;
+    const predFinish = pt.kind === 'milestone' ? predStart : (pt.actEnd || calcFinish(predStart, pt.dur, predRes));
+    let ns;
+    switch (pred.type) {
+      case 'FS':
+        ns = nextWorkDay(addDays(predFinish, 1 + pred.lag), r);
+        if (!earliestStart || ns > earliestStart) earliestStart = ns;
+        break;
+      case 'SS':
+        ns = nextWorkDay(addDays(predStart, pred.lag), r);
+        if (!earliestStart || ns > earliestStart) earliestStart = ns;
+        break;
+      case 'FF': {
+        const target = pred.lag ? addWorkDays(predFinish, pred.lag, r) : predFinish;
+        ns = subWorkDays(target, taskDur - 1, r);
+        if (!positionedStart || ns > positionedStart) positionedStart = ns;
+        break;
+      }
+      case 'SF': {
+        const target = pred.lag ? addWorkDays(predStart, pred.lag, r) : predStart;
+        ns = subWorkDays(target, taskDur - 1, r);
+        if (!positionedStart || ns > positionedStart) positionedStart = ns;
+        break;
+      }
+    }
+  });
+
+  if (positionedStart) {
+    if (earliestStart && earliestStart > positionedStart) return earliestStart;
+    return positionedStart;
+  }
+  return earliestStart;
+}
+
+// Compute task actStart based on planned start, predecessors, and constraint mode.
+// - pin:  actStart = planned (always)
+// - asap: actStart = max(predEnd, planned)
+// - soft: actStart = max(predEnd, planned) initially; leveling can pull below planned
+// When _lvActStart is set, it's the exact leveled position. predEnd is still
+// treated as a hard minimum (task can never start before a predecessor finishes).
+function computeActStart(t, i) {
+  const cons = t.cons || 'soft';
+  const planned = t.start || S.proj.start;
+  const predEnd = computePredEnd(t, i);
+
+  let actStart;
+  if (cons === 'pin') {
+    actStart = planned;
+  } else if (t._lvActStart) {
+    // Leveling has set an explicit position. Honor it, but never below predEnd.
+    actStart = t._lvActStart;
+    if (predEnd && predEnd > actStart) actStart = predEnd;
+  } else {
+    actStart = planned;
+    if (predEnd && predEnd > actStart) actStart = predEnd;
+  }
+
+  return actStart;
+}
+
+// Floor used by the backward-compaction pass. For soft mode, planned is NOT
+// a lower bound — only predecessors and the project start are. For asap, the
+// planned date remains a lower bound (same as computeActStart).
+function levelingFloor(t, i) {
+  const cons = t.cons || 'soft';
+  const predEnd = computePredEnd(t, i);
+  if (cons === 'asap') {
+    const planned = t.start || S.proj.start;
+    return predEnd && predEnd > planned ? predEnd : planned;
+  }
+  // soft
+  return predEnd || S.proj.start;
+}
+
+function schedAll() {
   // Apply T-shirt sizes to durations
   S.tasks.forEach(t => {
     if (t.kind === 'milestone') t.dur = 0;
@@ -873,106 +970,50 @@ function schedAll(forwardOnly = false) {
     }
   });
 
-  // Predecessor pass (limited iterations to prevent infinite loop)
+  // Predecessor pass for leaves (limited iterations for cyclic-or-near-cyclic safety)
   for (let pass = 0; pass < 15; pass++) {
     let changed = false;
     S.tasks.forEach((t, i) => {
-      if (t.kind === 'prd') return; // PRDs don't follow predecessors
+      if (t.kind === 'prd' || t.kind === 'story') return;
       const r = getRes(t.res);
-      const preds = parsePreds(t.pred, i);
-
-      if (preds.length === 0) return; // No predecessors, keep current start
-
-      // Separate constraints (FS/SS - earliest allowed) from positions (FF/SF - exact date)
-      let earliestStart = null;  // For FS/SS constraints
-      let positionedStart = null; // For FF/SF positioning
-
-      preds.forEach(pred => {
-        const pt = S.tasks[pred.idx];
-        if (!pt) return;
-
-        const predRes = getRes(pt.res);
-        const predStart = pt.start;
-        const predFinish = pt.kind === 'milestone' ? pt.start : calcFinish(pt.start, pt.dur, predRes);
-        const taskDur = t.dur || 1;
-
-        let newStart;
-        switch (pred.type) {
-          case 'FS': // Finish-to-Start: task starts after predecessor finishes
-            newStart = nextWorkDay(addDays(predFinish, 1 + pred.lag), r);
-            if (!earliestStart || newStart > earliestStart) earliestStart = newStart;
-            break;
-          case 'SS': // Start-to-Start: task starts when predecessor starts
-            newStart = nextWorkDay(addDays(predStart, pred.lag), r);
-            if (!earliestStart || newStart > earliestStart) earliestStart = newStart;
-            break;
-          case 'FF': // Finish-to-Finish: task finishes when predecessor finishes
-            const ffTargetFinish = pred.lag ? addWorkDays(predFinish, pred.lag, r) : predFinish;
-            newStart = subWorkDays(ffTargetFinish, taskDur - 1, r);
-            // FF sets exact position - use the latest if multiple FF
-            if (!positionedStart || newStart > positionedStart) positionedStart = newStart;
-            break;
-          case 'SF': // Start-to-Finish: task finishes when predecessor starts
-            const sfTargetFinish = pred.lag ? addWorkDays(predStart, pred.lag, r) : predStart;
-            newStart = subWorkDays(sfTargetFinish, taskDur - 1, r);
-            if (!positionedStart || newStart > positionedStart) positionedStart = newStart;
-            break;
-        }
-      });
-
-      // Determine final start date
-      let finalStart = t.start;
-
-      if (positionedStart) {
-        // FF/SF takes priority - sets exact position
-        finalStart = positionedStart;
-        // But must still respect FS/SS constraints (can't start before allowed)
-        if (earliestStart && earliestStart > finalStart) {
-          finalStart = earliestStart;
-        }
-      } else if (earliestStart) {
-        // Only FS/SS constraints - use earliest allowed
-        finalStart = earliestStart;
-      }
-
-      // Never pull a task back below its current start when the call is
-      // in forward-only mode OR the task was pinned (e.g. by auto-level).
-      // Successors still get pushed forward when predecessors finish later.
-      if ((forwardOnly || t._pinStart) && t.start && finalStart < t.start) {
-        finalStart = t.start;
-      }
-
-      if (finalStart !== t.start) {
-        t.start = finalStart;
+      const newActStart = computeActStart(t, i);
+      const newActEnd = t.kind === 'milestone' ? newActStart : calcFinish(newActStart, t.dur, r);
+      if (newActStart !== t.actStart || newActEnd !== t.actEnd) {
+        t.actStart = newActStart;
+        t.actEnd = newActEnd;
         changed = true;
       }
     });
     if (!changed) break;
   }
 
-  // PRDs and Stories span their children
-  S.tasks.forEach((t, i) => {
-    if (t.kind !== 'prd' && t.kind !== 'story') return;
+  // Parent rollup: iterate by lv DESC so deeper parents (Stories at lv=1) roll up before PRDs (lv=0)
+  const parents = S.tasks
+    .map((t, i) => ({ t, i }))
+    .filter(({ t }) => t.kind === 'prd' || t.kind === 'story')
+    .sort((a, b) => b.t.lv - a.t.lv);
 
+  parents.forEach(({ t, i }) => {
     const children = [];
     const targetLv = t.lv + 1;
     for (let j = i + 1; j < S.tasks.length; j++) {
       if (S.tasks[j].lv <= t.lv) break;
       if (S.tasks[j].lv === targetLv) children.push(S.tasks[j]);
     }
-
     if (!children.length) return;
 
-    const starts = children.map(c => c.start).filter(Boolean);
-    const finishes = children.map(c => {
-      if (c.kind === 'milestone') return c.start;
-      return calcFinish(c.start, c.dur, getRes(c.res));
+    const actStarts = children.map(c => c.actStart || c.start).filter(Boolean);
+    const actEnds = children.map(c => {
+      if (c.kind === 'milestone') return c.actStart || c.start;
+      return c.actEnd || calcFinish(c.actStart || c.start, c.dur, getRes(c.res));
     }).filter(Boolean);
 
-    if (starts.length && finishes.length) {
-      const cs = starts.reduce((a, b) => a < b ? a : b);
-      const cf = finishes.reduce((a, b) => a > b ? a : b);
-      t.start = cs;
+    if (actStarts.length && actEnds.length) {
+      const cs = actStarts.reduce((a, b) => a < b ? a : b);
+      const cf = actEnds.reduce((a, b) => a > b ? a : b);
+      t.actStart = cs;
+      t.actEnd = cf;
+      t.start = cs;       // keep planned columns in sync so parents always span children
       t.dur = workDaysBetween(cs, cf, null);
     }
   });
@@ -987,16 +1028,16 @@ function calcCriticalPath() {
   const n = S.tasks.length;
   const ef = {}; // Early finish
 
-  // Forward pass
+  // Forward pass (use actStart since schedAll has populated it)
   S.tasks.forEach((t, i) => {
     const r = getRes(t.res);
     const pids = parsePredIndices(t.pred, i);
-    let es = t.start;
+    let es = t.actStart || t.start;
 
     pids.forEach(pi => {
       const pt = S.tasks[pi];
       if (!pt) return;
-      const pf = ef[pi] || pt.start;
+      const pf = ef[pi] || pt.actStart || pt.start;
       const ns = nextWorkDay(addDays(pf, 1), r);
       if (ns > es) es = ns;
     });
@@ -1040,8 +1081,9 @@ function detectConflicts() {
     if (!t.res || t.kind === 'prd' || t.kind === 'story') return;
     if (!assignments[t.res]) assignments[t.res] = [];
 
-    const finish = t.kind === 'milestone' ? t.start : calcFinish(t.start, t.dur, getRes(t.res));
-    assignments[t.res].push({ taskId: t.id, name: t.name, start: t.start, finish });
+    const aStart = t.actStart || t.start;
+    const finish = t.kind === 'milestone' ? aStart : (t.actEnd || calcFinish(aStart, t.dur, getRes(t.res)));
+    assignments[t.res].push({ taskId: t.id, name: t.name, start: aStart, finish });
   });
 
   // Check for overlaps
@@ -1082,37 +1124,122 @@ function detectConflicts() {
 // AUTO LEVEL (US-12)
 // ═══════════════════════════════════════════════════════════════
 function autoLevel() {
+  // Reset any prior leveling locks so we recompute from the planned baseline
+  S.tasks.forEach(t => { delete t._lvActStart; });
   schedAll();
 
-  const resEnd = {};
-  S.resources.forEach(r => { resEnd[r.id] = null; });
+  // Helper: earliest feasible actStart for tk given the current state of the world
+  // (planned + predecessors). cons === 'pin' wins; others use max(predEnd, planned).
+  const baseActStart = tk => {
+    const i = S.tasks.indexOf(tk);
+    // Compute without _lvActStart influence by temporarily ignoring it
+    const saved = tk._lvActStart;
+    delete tk._lvActStart;
+    const v = computeActStart(tk, i);
+    if (saved !== undefined) tk._lvActStart = saved;
+    return v;
+  };
 
-  // Process tasks in order, respecting predecessors
-  const sorted = [...S.tasks]
-    .filter(t => t.kind === 'task' || t.kind === 'milestone')
-    .sort((a, b) => a.start < b.start ? -1 : 1);
+  // Resource intervals: { resId: [{start, end, task}] } sorted by start
+  const buildResMap = () => {
+    const map = {};
+    S.tasks.forEach(t => {
+      if ((t.kind !== 'task' && t.kind !== 'milestone') || !t.res) return;
+      if (!t.actStart) return;
+      const end = t.kind === 'milestone' ? t.actStart : (t.actEnd || calcFinish(t.actStart, t.dur, getRes(t.res)));
+      (map[t.res] = map[t.res] || []).push({ start: t.actStart, end, task: t });
+    });
+    Object.values(map).forEach(arr => arr.sort((a, b) => a.start < b.start ? -1 : 1));
+    return map;
+  };
 
-  sorted.forEach(tk => {
-    if (!tk.res) return;
-    const r = getRes(tk.res);
+  const stepNonWork = (date, r) => {
     const offs = r ? getTimeOffSet(r) : new Set();
+    let d = date;
+    let guard = 0;
+    while ((isWeekend(d) || offs.has(d)) && guard < 100) { d = addDays(d, 1); guard++; }
+    return d;
+  };
 
-    let e = tk.start;
-    while (isWeekend(e) || offs.has(e)) e = addDays(e, 1);
+  // ── FORWARD PASS: walk tasks in actStart order; if conflict, push later
+  const leaves = S.tasks.filter(t => (t.kind === 'task' || t.kind === 'milestone'));
+  const fwd = [...leaves].sort((a, b) => (a.actStart || '') < (b.actStart || '') ? -1 : 1);
+  const resEnd = {};
+  fwd.forEach(tk => {
+    if (!tk.res || (tk.cons === 'pin')) {
+      if (tk.res && tk.kind !== 'milestone') {
+        const end = tk.actEnd || calcFinish(tk.actStart, tk.dur, getRes(tk.res));
+        resEnd[tk.res] = resEnd[tk.res] && resEnd[tk.res] > end ? resEnd[tk.res] : end;
+      }
+      return;
+    }
+    const r = getRes(tk.res);
+    let e = stepNonWork(tk.actStart, r);
 
-    const lastEnd = resEnd[tk.res];
-    if (lastEnd && lastEnd >= e) {
-      e = addDays(lastEnd, 1);
-      while (isWeekend(e) || offs.has(e)) e = addDays(e, 1);
+    const last = resEnd[tk.res];
+    if (last && last >= e) {
+      e = stepNonWork(addDays(last, 1), r);
     }
 
-    if (tk.start !== e) tk._pinStart = true;
-    tk.start = e;
-    resEnd[tk.res] = calcFinish(tk.start, tk.dur, r);
+    if (tk.actStart !== e) {
+      tk._lvActStart = e;
+      tk.actStart = e;
+      tk.actEnd = tk.kind === 'milestone' ? e : calcFinish(e, tk.dur, r);
+    }
+    if (tk.kind !== 'milestone') resEnd[tk.res] = tk.actEnd;
   });
 
+  // Re-run schedAll so successors that depended on these moved tasks see the new actEnd
+  schedAll();
+
+  // ── BACKWARD PASS: pull soft tasks earlier when their resource has a gap
+  const back = [...leaves].sort((a, b) => (a.actStart || '') < (b.actStart || '') ? -1 : 1);
+  let pulledAny = false;
+  back.forEach(tk => {
+    const cons = tk.cons || 'soft';
+    if (cons === 'pin') return;
+    if (!tk.res) return;
+    const r = getRes(tk.res);
+    const idx = S.tasks.indexOf(tk);
+    // Floor: predecessors only for soft; planned-respecting for asap.
+    delete tk._lvActStart;
+    const floor = levelingFloor(tk, idx);
+    let target = floor;
+
+    // Find latest end of any OTHER task on this resource that finishes before our target
+    const others = leaves.filter(o => o !== tk && o.res === tk.res && o.actStart);
+    let earliestSlot = target;
+    // Walk back to find smallest date >= floor that doesn't overlap with any other interval on this resource
+    // Simple approach: candidate = floor; if any other interval [s,e] overlaps with [candidate, candidate+dur-1],
+    // bump candidate to e+1. Repeat.
+    const myDur = tk.dur || 1;
+    let candidate = stepNonWork(earliestSlot, r);
+    let guard = 0;
+    while (guard < 200) {
+      guard++;
+      const myEnd = tk.kind === 'milestone' ? candidate : calcFinish(candidate, myDur, r);
+      let collision = null;
+      for (const o of others) {
+        const oEnd = o.kind === 'milestone' ? o.actStart : (o.actEnd || calcFinish(o.actStart, o.dur, getRes(o.res)));
+        // Overlap if NOT (myEnd < o.actStart || candidate > oEnd)
+        if (!(myEnd < o.actStart || candidate > oEnd)) { collision = oEnd; break; }
+      }
+      if (!collision) break;
+      candidate = stepNonWork(addDays(collision, 1), r);
+    }
+
+    if (candidate < tk.actStart) {
+      tk._lvActStart = candidate;
+      tk.actStart = candidate;
+      tk.actEnd = tk.kind === 'milestone' ? candidate : calcFinish(candidate, myDur, r);
+      pulledAny = true;
+    }
+  });
+
+  if (pulledAny) schedAll();
+
   save();
-  render(true);
+  render();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1179,15 +1306,16 @@ function resetDelays() {
 // PROJECT DATES
 // ═══════════════════════════════════════════════════════════════
 function projectStart() {
-  const starts = S.tasks.map(t => t.start).filter(Boolean);
+  const starts = S.tasks.map(t => t.actStart || t.start).filter(Boolean);
   return starts.length ? starts.reduce((a, b) => a < b ? a : b) : S.proj.start;
 }
 
 function projectEnd() {
-  // Use configured end date if set, otherwise calculate from tasks
+  // Use configured end date if set, otherwise calculate from tasks (actual end)
   const taskEnds = S.tasks.map(t => {
-    if (t.kind === 'milestone') return t.start;
-    return calcFinish(t.start, t.dur, getRes(t.res));
+    const s = t.actStart || t.start;
+    if (t.kind === 'milestone') return s;
+    return t.actEnd || calcFinish(s, t.dur, getRes(t.res));
   }).filter(Boolean);
   const calcEnd = taskEnds.length ? taskEnds.reduce((a, b) => a > b ? a : b) : addDays(S.proj.start, 60);
 
@@ -1219,7 +1347,7 @@ function getAllDays() {
   const days = [];
   const c = new Date(start);
   let guard = 0;
-  const maxDays = 400; // Safety limit
+  const maxDays = 8000; // Safety limit (~21 years)
 
   while (c <= end && guard < maxDays) {
     days.push(c.toISOString().slice(0, 10));
@@ -1455,7 +1583,7 @@ function toggleCol(id) {
 }
 
 function recalcSchedule() {
-  S.tasks.forEach(t => { delete t._pinStart; });
+  S.tasks.forEach(t => { delete t._lvActStart; });
   schedAll();
   save();
   render();
@@ -1516,19 +1644,31 @@ function commit(id, field, val) {
     case 'name': t.name = val || t.name; break;
     case 'dur':
       const v = parseInt(val);
-      if (v >= 0) { t.dur = v; t.sz = ''; }
+      if (v >= 0) { t.dur = v; t.sz = ''; delete t._lvActStart; }
       break;
-    case 'start': if (val) { t.start = val; delete t._pinStart; } break;
-    case 'pred': t.pred = val.trim(); break;
+    case 'start': if (val) { t.start = val; delete t._lvActStart; } break;
+    case 'pred': t.pred = val.trim(); delete t._lvActStart; break;
     case 'pct': t.pct = clamp(parseInt(val) || 0, 0, 100); break;
-    case 'res': t.res = val; break;
+    case 'res': t.res = val; delete t._lvActStart; break;
     case 'ttype': t.ttype = val; break;
-    case 'sz': t.sz = val; break;
+    case 'sz': t.sz = val; delete t._lvActStart; break;
+    case 'cons':
+      t.cons = ['soft', 'asap', 'pin'].includes(val) ? val : 'soft';
+      delete t._lvActStart;
+      break;
   }
 
   schedAll();
   save();
   render();
+}
+
+function cycleCons(id) {
+  const t = taskById(id);
+  if (!t || t.kind === 'prd' || t.kind === 'story') return;
+  const order = ['soft', 'asap', 'pin'];
+  const cur = order.indexOf(t.cons || 'soft');
+  commit(id, 'cons', order[(cur + 1) % order.length]);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1564,7 +1704,7 @@ function barDrag(e, id) {
       const newOff = Math.round(parseInt(bar.style.left) / S.zoom);
       const rawDate = addDays(ps, newOff);
       t.start = nextWorkDay(rawDate, getRes(t.res));
-      delete t._pinStart;
+      delete t._lvActStart;
     }
 
     dragId = null;
@@ -1994,8 +2134,8 @@ function renderHdr() {
 // ═══════════════════════════════════════════════════════════════
 // MAIN RENDER
 // ═══════════════════════════════════════════════════════════════
-function render(forwardSched = false) {
-  schedAll(forwardSched);
+function render() {
+  schedAll();
   if (S.showCrit) calcCriticalPath();
   const conflicts = detectConflicts();
 
@@ -2069,6 +2209,9 @@ function render(forwardSched = false) {
     const isSel = t.id === S.selId;
     const r = getRes(t.res);
     const fin = t.kind === 'milestone' ? t.start : calcFinish(t.start, t.dur, r);
+    const actStart = t.actStart || t.start;
+    const actFin = t.actEnd || (t.kind === 'milestone' ? actStart : calcFinish(actStart, t.dur, r));
+    const isShifted = !!(t.actStart && (t.actStart !== t.start || (t.actEnd && fin && t.actEnd !== fin)));
     const isCrit = S.showCrit && t._crit;
     const isConflict = t._conflict;
     const isPrd = t.kind === 'prd';
@@ -2135,11 +2278,20 @@ function render(forwardSched = false) {
           ${isPrd || isStory ? 'readonly' : ''} onfocus="this.select()" onclick="event.stopPropagation()"
           onblur="commit('${t.id}','dur',this.value)"/>
       </div>
+      <div class="tc tc-cons ${t.cons === 'asap' ? 'asap' : ''}${t.cons === 'pin' ? 'pin' : ''}"
+        style="width:var(--col-cons)"
+        title="${(isPrd || isStory) ? 'Auto from children' : 'Click to cycle: soft (↔), asap (≥), pin (=)'}"
+        onclick="event.stopPropagation();${(isPrd || isStory) ? '' : `cycleCons('${t.id}')`}">
+        ${(isPrd || isStory) ? '—' : (t.cons === 'pin' ? '=' : t.cons === 'asap' ? '≥' : '↔')}
+      </div>
       <div class="tc" style="width:var(--col-start)">
-        <input type="date" value="${t.start}" onclick="event.stopPropagation()"
+        <input type="date" value="${t.start || ''}" onclick="event.stopPropagation()"
+          ${(isPrd || isStory) ? 'readonly' : ''}
           onblur="commit('${t.id}','start',this.value)"/>
       </div>
       <div class="tc tc-fin" style="width:var(--col-fin)">${formatDate(fin)}</div>
+      <div class="tc tc-act ${isShifted ? 'shifted' : ''}" style="width:var(--col-astart)">${formatDate(actStart)}</div>
+      <div class="tc tc-act ${isShifted ? 'shifted' : ''}" style="width:var(--col-afin)">${formatDate(actFin)}</div>
       <div class="tc" style="width:var(--col-pred)">
         <input value="${t.pred || ''}" style="text-align:center" placeholder="3FS"
           onfocus="this.select()" onclick="event.stopPropagation()" title="Format: 3FS, 5FF, 2SS, 1SF (default: FS)"
@@ -2161,8 +2313,9 @@ function render(forwardSched = false) {
     // Chart row highlight
     chartRows += `<div class="cr${isSel ? ' sel-row' : ''}${isPrd ? ' prd-row' : ''}${isStory ? ' story-row' : ''}" style="top:${vi * ROW}px"></div>`;
 
-    // Chart bar
-    const off = daysDiff(ps, t.start);
+    // Chart bar — use actStart so the chart reflects the scheduled/leveled position
+    const barStart = actStart;
+    const off = daysDiff(ps, barStart);
     let barColor = r ? r.color : (t.ttype ? typeColor(t.ttype) : '#4a90d9');
     if (isCrit && S.showCrit) barColor = '#f44336';
 
@@ -2172,9 +2325,8 @@ function render(forwardSched = false) {
       chartBars += `<div class="ms-dia" style="left:${x}px;top:${y}px;width:16px;height:16px;background:${isCrit ? '#f44336' : '#FF9800'}"
         onclick="sel('${t.id}')" ondblclick="openTaskModal('${t.id}')"></div>`;
     } else {
-      // Bar width should span calendar days (start to finish), not just working days
-      const finDate = calcFinish(t.start, t.dur, r);
-      const calendarDays = daysDiff(t.start, finDate) + 1; // +1 to include both start and end day
+      // Bar width spans calendar days from actStart to actEnd
+      const calendarDays = daysDiff(barStart, actFin) + 1;
       const bw = Math.max(6, calendarDays * dW);
       const pw = Math.round((t.pct / 100) * bw);
 
@@ -2183,8 +2335,8 @@ function render(forwardSched = false) {
       if (t.sz && isTask) {
         const sz = getSize(t.sz);
         if (sz && sz.days !== t.dur) {
-          const ghostFinDate = calcFinish(t.start, sz.days, r);
-          const ghostCalDays = daysDiff(t.start, ghostFinDate) + 1;
+          const ghostFinDate = calcFinish(barStart, sz.days, r);
+          const ghostCalDays = daysDiff(barStart, ghostFinDate) + 1;
           const gw = ghostCalDays * dW;
           ghostHtml = `<div class="ghost-bar" style="left:${off * dW}px;top:${vi * ROW + 4}px;width:${gw}px;height:${ROW - 8}px"></div>`;
         }
@@ -2236,10 +2388,10 @@ function render(forwardSched = false) {
   depLinks.forEach(({ from, to, fromT, toT, isCrit, type }) => {
     const rf = getRes(fromT.res);
     const rt = getRes(toT.res);
-    const fromStart = fromT.start;
-    const fromFin = fromT.kind === 'milestone' ? fromT.start : calcFinish(fromT.start, fromT.dur, rf);
-    const toStart = toT.start;
-    const toFin = toT.kind === 'milestone' ? toT.start : calcFinish(toT.start, toT.dur, rt);
+    const fromStart = fromT.actStart || fromT.start;
+    const fromFin = fromT.kind === 'milestone' ? fromStart : (fromT.actEnd || calcFinish(fromStart, fromT.dur, rf));
+    const toStart = toT.actStart || toT.start;
+    const toFin = toT.kind === 'milestone' ? toStart : (toT.actEnd || calcFinish(toStart, toT.dur, rt));
 
     // Determine arrow start/end based on dependency type
     let x1, x2;
