@@ -994,11 +994,14 @@ function schedAll() {
     .sort((a, b) => b.t.lv - a.t.lv);
 
   parents.forEach(({ t, i }) => {
+    // Collect all leaf descendants (tasks/milestones at any deeper level),
+    // not just direct children. Users may skip the Story layer (PRD → Task).
     const children = [];
-    const targetLv = t.lv + 1;
     for (let j = i + 1; j < S.tasks.length; j++) {
       if (S.tasks[j].lv <= t.lv) break;
-      if (S.tasks[j].lv === targetLv) children.push(S.tasks[j]);
+      if (S.tasks[j].kind === 'task' || S.tasks[j].kind === 'milestone') {
+        children.push(S.tasks[j]);
+      }
     }
     if (!children.length) return;
 
