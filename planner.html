@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Project Planner — Card Squad</title>
+<title>Project Planner</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
 :root{
@@ -201,19 +201,41 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:var(--text);di
 /* Saved flash */
 #saved{position:fixed;bottom:30px;right:16px;background:var(--green);color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
 #saved.on{opacity:1}
+
+/* PDF EXPORT — applied while body.printing is active */
+body.printing,body.printing *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
+body.printing{overflow:visible!important;height:auto!important}
+body.printing #menubar,
+body.printing #toolbar,
+body.printing #sidebar,
+body.printing #splitter,
+body.printing #statusbar,
+body.printing #saved,
+body.printing div[id^="m-"]{display:none!important}
+body.printing #main{display:flex!important;overflow:visible!important;height:auto!important;width:max-content!important;transform-origin:top left}
+body.printing #pdf-wrap{overflow:hidden}
+body.printing #left-panel,
+body.printing #right-panel{width:max-content!important;max-width:none!important;min-width:0!important;flex:none!important;overflow:visible!important;height:auto!important}
+body.printing #grid-body-outer,
+body.printing #chart-body-outer{overflow:visible!important;height:auto!important;max-height:none!important}
+body.printing #chart-hdr{overflow:visible!important;max-height:none!important}
+body.printing #chart-hdr::-webkit-scrollbar{display:none}
+@page{size:A3 landscape;margin:8mm}
 </style>
 </head>
 <body>
 
 <!-- MENU BAR -->
 <div id="menubar">
-  <span class="menu-logo">◆ Card Squad Planner</span>
+  <span class="menu-logo">◆ <span id="app-title">Project Planner</span></span>
   <div class="menu-item">File
     <div class="dropdown">
       <div class="dd-item" onclick="exportJSON()">↓ Export JSON <span class="dd-key">Ctrl+S</span></div>
+      <div class="dd-item" onclick="exportPDF()">↓ Export PDF</div>
       <div class="dd-item"><label>↑ Import JSON<input type="file" accept=".json" style="display:none" onchange="importJSON(event)"></label></div>
       <div class="dd-sep"></div>
       <div class="dd-item" onclick="resetProject()">New Project</div>
+      <div class="dd-item" onclick="renameProject()">✎ Rename Project</div>
     </div>
   </div>
   <div class="menu-item">Edit
@@ -454,6 +476,18 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:var(--text);di
   <div class="mft"><button class="mbtn" onclick="closeM('proj')">Cancel</button><button class="mbtn pri" onclick="saveProjSet()">Save</button></div>
 </div></div></div>
 
+<!-- NEW PROJECT MODAL -->
+<div id="m-new" style="display:none"><div class="mbg"><div class="mbox" onclick="event.stopPropagation()">
+  <h3 id="m-new-title">New Project</h3>
+  <div class="mfr"><label>Project Name</label><input id="mn-name" placeholder="My Project" autofocus/></div>
+  <div class="mfr"><label>Start Date</label><input type="date" id="mn-start"/></div>
+  <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Name and start date are required to create a project.</div>
+  <div class="mft">
+    <button class="mbtn" id="m-new-cancel" onclick="closeM('new')">Cancel</button>
+    <button class="mbtn pri" onclick="createNewProject()">Create</button>
+  </div>
+</div></div></div>
+
 <div id="saved">✓ Saved</div>
 
 <script>
@@ -594,17 +628,11 @@ function workDaysBetween(s, f, r) {
 // ═══════════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════════
-const STORAGE_KEY = 'card-squad-planner-v2';
+const STORAGE_KEY = 'planner-v3';
 
 let S = {
-  proj: { name: 'Card Squad Q1-Q2 2026', start: '2026-01-05', end: '2026-04-05' },
-  resources: [
-    { id: 'r1', name: 'Ahmed', role: 'Backend', color: '#2196F3', timeoff: [] },
-    { id: 'r2', name: 'Sara', role: 'Frontend', color: '#009688', timeoff: [] },
-    { id: 'r3', name: 'Omar', role: 'QA', color: '#FF5722', timeoff: [] },
-    { id: 'r4', name: 'Nour', role: 'Mobile', color: '#9C27B0', timeoff: [] },
-    { id: 'r5', name: 'Heidi', role: 'Mobile', color: '#E91E63', timeoff: [] },
-  ],
+  proj: { name: '', start: '', end: '' },
+  resources: [],
   sizes: [
     { id: 'xs', label: 'XS', days: 1 },
     { id: 's', label: 'S', days: 3 },
@@ -628,68 +656,10 @@ const getSize = id => S.sizes.find(s => s.id === id);
 const taskById = id => S.tasks.find(t => t.id === id);
 
 // ═══════════════════════════════════════════════════════════════
-// DEFAULT DATA - Card Squad User Stories
+// DEFAULT DATA - Empty project (the New Project dialog seeds proj.name + proj.start)
 // ═══════════════════════════════════════════════════════════════
 function loadDefaultData() {
-  S.tasks = [
-    // EP-01 BCard Core
-    { id: 'ep01', name: 'EP-01: BCard Core Product', kind: 'prd', lv: 0, start: '2026-01-12', sz: 'xl', dur: 20, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Login optimization, status API, Redis caching', col: false },
-
-    { id: 'us01', name: 'US-01: BCard Login — Redis Caching', kind: 'story', lv: 1, start: '2026-01-12', sz: 'xl', dur: 20, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: High', col: false },
-    { id: 'us01t1', name: 'Implement Redis cache layer', kind: 'task', lv: 2, start: '2026-01-12', sz: 'l', dur: 10, pct: 0, pred: '', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us01t2', name: 'Cache invalidation on logout', kind: 'task', lv: 2, start: '2026-01-26', sz: 's', dur: 3, pct: 0, pred: '3', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us01t3', name: 'Load testing with K6', kind: 'task', lv: 2, start: '2026-01-29', sz: 's', dur: 3, pct: 0, pred: '4', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
-    { id: 'us01t4', name: 'Datadog dashboard setup', kind: 'task', lv: 2, start: '2026-02-03', sz: 'xs', dur: 1, pct: 0, pred: '5', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
-
-    { id: 'us02', name: 'US-02: BCard Get Status API Consolidation', kind: 'story', lv: 1, start: '2026-01-12', sz: 'l', dur: 10, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: High', col: false },
-    { id: 'us02t1', name: 'Consolidate DB queries', kind: 'task', lv: 2, start: '2026-01-12', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us02t2', name: 'Add Redis cache layer', kind: 'task', lv: 2, start: '2026-01-19', sz: 's', dur: 3, pct: 0, pred: '8', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us02t3', name: 'QA regression testing', kind: 'task', lv: 2, start: '2026-01-22', sz: 'xs', dur: 1, pct: 0, pred: '9', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
-
-    { id: 'us03', name: 'US-03: BCard Mobile Login Screen Redesign', kind: 'story', lv: 1, start: '2026-01-12', sz: 'l', dur: 10, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: Medium', col: false },
-    { id: 'us03t1', name: 'iOS login screen implementation', kind: 'task', lv: 2, start: '2026-01-12', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r4', dl: '', ttype: 'Mobile', notes: '' },
-    { id: 'us03t2', name: 'Android login screen implementation', kind: 'task', lv: 2, start: '2026-01-12', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r5', dl: '', ttype: 'Mobile', notes: '' },
-    { id: 'us03t3', name: 'Accessibility audit', kind: 'task', lv: 2, start: '2026-01-19', sz: 'xs', dur: 1, pct: 0, pred: '12,13', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
-
-    // EP-02 Card Top-Up
-    { id: 'ep02', name: 'EP-02: Card Top-Up Flows', kind: 'prd', lv: 0, start: '2026-02-02', sz: 'xxl', dur: 30, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Top-up via wallet, bank transfer, VISA integration', col: false },
-
-    { id: 'us04', name: 'US-04: Top-Up via Breadfast Wallet', kind: 'story', lv: 1, start: '2026-02-02', sz: 'xl', dur: 20, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: High', col: false },
-    { id: 'us04t1', name: 'Backend API for wallet top-up', kind: 'task', lv: 2, start: '2026-02-02', sz: 'l', dur: 10, pct: 0, pred: '', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us04t2', name: 'Frontend top-up flow', kind: 'task', lv: 2, start: '2026-02-02', sz: 'l', dur: 10, pct: 0, pred: '', res: 'r2', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us04t3', name: 'Idempotency implementation', kind: 'task', lv: 2, start: '2026-02-16', sz: 's', dur: 3, pct: 0, pred: '17', res: 'r1', dl: '', ttype: 'Dev', notes: 'Critical - prevent duplicate payments' },
-    { id: 'us04t4', name: 'Integration testing', kind: 'task', lv: 2, start: '2026-02-19', sz: 's', dur: 3, pct: 0, pred: '18,19', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
-
-    { id: 'us05', name: 'US-05: Top-Up Payment API (VISA/ADIB)', kind: 'story', lv: 1, start: '2026-02-23', sz: 'xxl', dur: 30, pct: 0, pred: '16', res: '', dl: '', ttype: '', notes: 'Priority: High', col: false },
-    { id: 'us05t1', name: 'ADIB gateway integration', kind: 'task', lv: 2, start: '2026-02-23', sz: 'xl', dur: 20, pct: 0, pred: '', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us05t2', name: 'Webhook handling', kind: 'task', lv: 2, start: '2026-03-23', sz: 'm', dur: 5, pct: 0, pred: '22', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us05t3', name: 'CBE compliance audit trail', kind: 'task', lv: 2, start: '2026-03-30', sz: 's', dur: 3, pct: 0, pred: '23', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us05t4', name: 'Security review', kind: 'task', lv: 2, start: '2026-04-02', sz: 's', dur: 3, pct: 0, pred: '24', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
-
-    { id: 'us06', name: 'US-06: Top-Up UI Flow — Mobile', kind: 'story', lv: 1, start: '2026-02-02', sz: 'l', dur: 10, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: High', col: false },
-    { id: 'us06t1', name: 'Amount selection screen', kind: 'task', lv: 2, start: '2026-02-02', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r4', dl: '', ttype: 'Mobile', notes: '' },
-    { id: 'us06t2', name: 'Confirmation & success screens', kind: 'task', lv: 2, start: '2026-02-09', sz: 'm', dur: 5, pct: 0, pred: '27', res: 'r4', dl: '', ttype: 'Mobile', notes: '' },
-    { id: 'us06t3', name: 'Deep link support', kind: 'task', lv: 2, start: '2026-02-16', sz: 'xs', dur: 1, pct: 0, pred: '28', res: 'r4', dl: '', ttype: 'Mobile', notes: '' },
-
-    // EP-03 Cashback
-    { id: 'ep03', name: 'EP-03: Cashback & Rewards', kind: 'prd', lv: 0, start: '2026-02-02', sz: 'xl', dur: 20, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Cashback calculation with idempotency fix', col: false },
-
-    { id: 'us07', name: 'US-07: Cashback Idempotency Fix', kind: 'story', lv: 1, start: '2026-02-02', sz: 'xl', dur: 20, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: CRITICAL', col: false },
-    { id: 'us07t1', name: 'Implement idempotency key system', kind: 'task', lv: 2, start: '2026-02-02', sz: 'l', dur: 10, pct: 0, pred: '', res: 'r1', dl: '', ttype: 'Dev', notes: 'Addresses production incident' },
-    { id: 'us07t2', name: 'Duplicate detection service', kind: 'task', lv: 2, start: '2026-02-16', sz: 'm', dur: 5, pct: 0, pred: '32', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us07t3', name: 'RabbitMQ consumer fix', kind: 'task', lv: 2, start: '2026-02-23', sz: 's', dur: 3, pct: 0, pred: '33', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us07t4', name: 'Integration test: 3x event dedup', kind: 'task', lv: 2, start: '2026-02-26', sz: 'xs', dur: 1, pct: 0, pred: '34', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
-
-    { id: 'us08', name: 'US-08: Cashback Balance on Card Home', kind: 'story', lv: 1, start: '2026-02-02', sz: 'm', dur: 5, pct: 0, pred: '', res: '', dl: '', ttype: '', notes: 'Priority: Medium', col: false },
-    { id: 'us08t1', name: 'Cashback widget frontend', kind: 'task', lv: 2, start: '2026-02-02', sz: 's', dur: 3, pct: 0, pred: '', res: 'r2', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us08t2', name: 'Mobile widget implementation', kind: 'task', lv: 2, start: '2026-02-02', sz: 's', dur: 3, pct: 0, pred: '', res: 'r4', dl: '', ttype: 'Mobile', notes: '' },
-
-    { id: 'us09', name: 'US-09: Cashback History & Detail', kind: 'story', lv: 1, start: '2026-02-09', sz: 'l', dur: 10, pct: 0, pred: '36', res: '', dl: '', ttype: '', notes: 'Priority: Medium', col: false },
-    { id: 'us09t1', name: 'History API with pagination', kind: 'task', lv: 2, start: '2026-02-09', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r1', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us09t2', name: 'History screen frontend', kind: 'task', lv: 2, start: '2026-02-09', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r2', dl: '', ttype: 'Dev', notes: '' },
-    { id: 'us09t3', name: 'Mobile history screen', kind: 'task', lv: 2, start: '2026-02-09', sz: 'm', dur: 5, pct: 0, pred: '', res: 'r4', dl: '', ttype: 'Mobile', notes: '' },
-    { id: 'us09t4', name: 'Date filter testing', kind: 'task', lv: 2, start: '2026-02-16', sz: 'xs', dur: 1, pct: 0, pred: '40,41,42', res: 'r3', dl: '', ttype: 'Testing', notes: '' },
-  ];
+  S.tasks = [];
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -730,12 +700,53 @@ function load() {
   return false;
 }
 
+function safeFilename(s) {
+  return (s || 'project').trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '_').slice(0, 80) || 'project';
+}
+
 function exportJSON() {
   const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'project-' + today() + '.json';
+  a.download = safeFilename(S.proj.name) + '-' + today() + '.json';
   a.click();
+}
+
+function exportPDF() {
+  if (!S.tasks.length) { alert('Add some tasks before exporting.'); return; }
+
+  document.body.classList.add('printing');
+
+  requestAnimationFrame(() => {
+    const main = document.getElementById('main');
+    const contentW = main.scrollWidth;
+    const contentH = main.scrollHeight;
+    // A3 landscape printable area with 8mm margins, in CSS px @ 96dpi
+    // A3 = 420×297mm; minus 16mm = 404×281mm; ×3.78 px/mm ≈ 1527×1062
+    const pageW = 1527, pageH = 1062;
+    const scale = Math.min(pageW / contentW, pageH / contentH, 1);
+
+    // Wrap #main in a sized container so the print engine sees the scaled bounding box.
+    // transform:scale alone doesn't change layout dimensions — the wrapper fixes that.
+    const parent = main.parentNode;
+    const wrap = document.createElement('div');
+    wrap.id = 'pdf-wrap';
+    wrap.style.width = (contentW * scale) + 'px';
+    wrap.style.height = (contentH * scale) + 'px';
+    parent.insertBefore(wrap, main);
+    wrap.appendChild(main);
+    main.style.transform = `scale(${scale})`;
+
+    const cleanup = () => {
+      main.style.transform = '';
+      parent.insertBefore(main, wrap);
+      wrap.remove();
+      document.body.classList.remove('printing');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(() => window.print(), 80);
+  });
 }
 
 function importJSON(e) {
@@ -762,12 +773,46 @@ function importJSON(e) {
 }
 
 function resetProject() {
-  if (!confirm('Start a new empty project? This will clear all tasks.')) return;
+  openNewProjectDialog({ isFirstRun: false });
+}
+
+function renameProject() {
+  const next = prompt('Rename project:', S.proj.name || '');
+  if (next === null) return;
+  const trimmed = next.trim();
+  if (!trimmed) { alert('Project name cannot be empty.'); return; }
+  S.proj.name = trimmed;
+  save();
+  renderHdr();
+}
+
+function openNewProjectDialog({ isFirstRun }) {
+  document.getElementById('m-new-title').textContent = isFirstRun ? 'Welcome — Create Your Project' : 'New Project';
+  document.getElementById('m-new-cancel').style.display = isFirstRun ? 'none' : '';
+  document.getElementById('mn-name').value = isFirstRun ? '' : (S.proj.name || '');
+  document.getElementById('mn-start').value = isFirstRun ? today() : (S.proj.start || today());
+  document.getElementById('m-new').style.display = 'block';
+  setTimeout(() => document.getElementById('mn-name').focus(), 50);
+}
+
+function createNewProject() {
+  const name = document.getElementById('mn-name').value.trim();
+  const start = document.getElementById('mn-start').value;
+  if (!name) { alert('Please enter a project name.'); return; }
+  if (!start) { alert('Please pick a start date.'); return; }
+  S.proj.name = name;
+  S.proj.start = start;
+  S.proj.end = addDays(start, 90);
   S.tasks = [];
+  S.resources = [];
   S.selId = null;
   S.delays = {};
+  closeM('new');
+  schedAll();
   save();
+  renderHdr();
   render();
+  renderSidebar();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1925,7 +1970,10 @@ function clearResFilter() {
 }
 
 function renderHdr() {
-  document.getElementById('proj-name-lbl').textContent = S.proj.name || '';
+  const name = S.proj.name || '';
+  document.getElementById('proj-name-lbl').textContent = name ? `— ${S.proj.start || ''}` : '';
+  document.getElementById('app-title').textContent = name || 'Project Planner';
+  document.title = name ? `${name} — Project Planner` : 'Project Planner';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1965,17 +2013,19 @@ function render(forwardSched = false) {
       ${new Date(m + '-01').toLocaleString('default', { month: 'short', year: 'numeric' })}</div>`
   ).join('');
 
+  const WD_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   let daysHtml = days.map((d, i) => {
     const dt = new Date(d + 'T12:00:00');
     const wd = dt.getDay();
     const isToday = d === td;
     const wk = wd === 5 || wd === 6;
     const bg = wk ? 'rgba(0,0,0,.25)' : isToday ? 'rgba(33,150,243,.15)' : 'transparent';
-    // Show day number for ALL days
     const dayNum = dt.getDate();
     const dayColor = isToday ? '#2196F3' : wk ? '#555' : '#888';
-    const txt = `<span style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-size:${dW > 20 ? 9 : 8}px;color:${dayColor}">${dayNum}</span>`;
-    return `<div style="position:absolute;top:0;bottom:0;left:${i * dW}px;width:${dW}px;background:${bg};border-right:1px solid #3a3a3a">${txt}</div>`;
+    const fs = dW > 20 ? 9 : 8;
+    const wdLetter = `<span style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-size:${fs}px;color:${dayColor};opacity:.7">${WD_LETTERS[wd]}</span>`;
+    const dayTxt = `<span style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-size:${fs}px;color:${dayColor};font-weight:600">${dayNum}</span>`;
+    return `<div style="position:absolute;top:0;bottom:0;left:${i * dW}px;width:${dW}px;background:${bg};border-right:1px solid #3a3a3a">${wdLetter}${dayTxt}</div>`;
   }).join('');
 
   document.getElementById('chart-hdr').innerHTML = `<div style="position:relative;height:100%;min-width:${total}px">${monthsHtml}${daysHtml}</div>`;
@@ -2234,8 +2284,12 @@ function render(forwardSched = false) {
 // ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
-if (!load()) {
+const _hadSavedProject = load();
+if (!_hadSavedProject) {
   loadDefaultData();
+  S.proj.name = '';
+  S.proj.start = today();
+  S.proj.end = addDays(S.proj.start, 90);
 }
 
 schedAll();
@@ -2246,6 +2300,10 @@ bindScroll();
 
 // Initial tab
 showSTab('team');
+
+if (!_hadSavedProject) {
+  openNewProjectDialog({ isFirstRun: true });
+}
 
 console.log('Card Squad Planner loaded successfully');
 </script>
