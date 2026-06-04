@@ -387,9 +387,10 @@ body.printing #chart-hdr::-webkit-scrollbar{display:none}
         <div class="sp">
           <div class="sp-title">Project</div>
           <div class="sr"><label>Name</label><input id="s-pname" onchange="S.proj.name=this.value;save();renderHdr()"/></div>
-          <div class="sr"><label>Start</label><input type="date" id="s-pstart" onchange="S.proj.start=this.value;schedAll();save();render()"/></div>
+          <div class="sr"><label>Start</label><input type="date" id="s-pstart" onchange="setProjectStart(this.value);schedAll();save();render()"/></div>
           <div class="sr"><label>End</label><input type="date" id="s-pend" onchange="S.proj.end=this.value;save();render()"/></div>
           <div style="font-size:10px;color:var(--text3);margin-top:4px">Duration: <span id="s-duration"></span> working days</div>
+          <button class="mbtn" style="margin-top:6px;width:100%" onclick="rebaseTasksToStart()" title="Shift every task so the earliest one lines up with the project start date">Shift tasks to Start</button>
         </div>
         <div class="sp">
           <div class="sp-title">Weekend</div>
@@ -1164,9 +1165,16 @@ function autoLevel() {
     return d;
   };
 
-  // ── FORWARD PASS: walk tasks in actStart order; if conflict, push later
+  // ── FORWARD PASS: walk tasks in actStart order; if conflict, push later.
+  // Ties broken by row order — higher in the task list claims the resource first.
   const leaves = S.tasks.filter(t => (t.kind === 'task' || t.kind === 'milestone'));
-  const fwd = [...leaves].sort((a, b) => (a.actStart || '') < (b.actStart || '') ? -1 : 1);
+  const rowIdx = new Map(S.tasks.map((t, i) => [t, i]));
+  const byStartThenRow = (a, b) => {
+    const sa = a.actStart || '', sb = b.actStart || '';
+    if (sa !== sb) return sa < sb ? -1 : 1;
+    return rowIdx.get(a) - rowIdx.get(b);
+  };
+  const fwd = [...leaves].sort(byStartThenRow);
   const resEnd = {};
   fwd.forEach(tk => {
     if (!tk.res || (tk.cons === 'pin')) {
@@ -1196,7 +1204,7 @@ function autoLevel() {
   schedAll();
 
   // ── BACKWARD PASS: pull soft tasks earlier when their resource has a gap
-  const back = [...leaves].sort((a, b) => (a.actStart || '') < (b.actStart || '') ? -1 : 1);
+  const back = [...leaves].sort(byStartThenRow);
   let pulledAny = false;
   back.forEach(tk => {
     const cons = tk.cons || 'soft';
@@ -1205,7 +1213,6 @@ function autoLevel() {
     const r = getRes(tk.res);
     const idx = S.tasks.indexOf(tk);
     // Floor: predecessors only for soft; planned-respecting for asap.
-    delete tk._lvActStart;
     const floor = levelingFloor(tk, idx);
     let target = floor;
 
@@ -1311,6 +1318,58 @@ function resetDelays() {
 function projectStart() {
   const starts = S.tasks.map(t => t.actStart || t.start).filter(Boolean);
   return starts.length ? starts.reduce((a, b) => a < b ? a : b) : S.proj.start;
+}
+
+// Shift every task so the earliest task start matches S.proj.start.
+// Use this to retroactively realign tasks after the project start has already
+// changed (e.g., after a load), where setProjectStart's onchange wouldn't fire.
+function rebaseTasksToStart() {
+  const starts = S.tasks.map(t => t.start).filter(Boolean);
+  if (!starts.length) { alert('No tasks have planned dates yet.'); return; }
+  const earliest = starts.reduce((a, b) => a < b ? a : b);
+  const delta = daysDiff(earliest, S.proj.start);
+  if (delta === 0) { alert('Tasks already align with the project start.'); return; }
+  const dir = delta > 0 ? 'later' : 'earlier';
+  const ok = confirm(
+    `Earliest task starts ${earliest}. Shift all ${S.tasks.length} task date(s) ` +
+    `by ${Math.abs(delta)} day(s) ${dir} so they begin on ${S.proj.start}?`
+  );
+  if (!ok) return;
+  S.tasks.forEach(t => {
+    if (t.start) t.start = addDays(t.start, delta);
+    delete t._lvActStart;
+  });
+  schedAll();
+  save();
+  render();
+}
+
+// Change the project start date and offer to shift every task by the same delta.
+// Returns true if S.proj.start was updated (with or without shifting tasks),
+// false if the user cancelled and the caller should revert its input.
+function setProjectStart(newStart) {
+  if (!newStart || newStart === S.proj.start) {
+    S.proj.start = newStart || S.proj.start;
+    return true;
+  }
+  const delta = daysDiff(S.proj.start, newStart);
+  const dated = S.tasks.filter(t => t.start);
+  if (delta !== 0 && dated.length) {
+    const dir = delta > 0 ? 'later' : 'earlier';
+    const ok = confirm(
+      `Shift all ${dated.length} task date(s) by ${Math.abs(delta)} day(s) ${dir} ` +
+      `so they follow the new project start (${newStart})?\n\n` +
+      `OK = shift tasks   •   Cancel = keep task dates as-is`
+    );
+    if (ok) {
+      S.tasks.forEach(t => {
+        if (t.start) t.start = addDays(t.start, delta);
+        delete t._lvActStart;
+      });
+    }
+  }
+  S.proj.start = newStart;
+  return true;
 }
 
 function projectEnd() {
@@ -1987,7 +2046,8 @@ function openProjSettings() {
 
 function saveProjSet() {
   S.proj.name = document.getElementById('mp-name').value || S.proj.name;
-  S.proj.start = document.getElementById('mp-start').value || S.proj.start;
+  const newStart = document.getElementById('mp-start').value;
+  if (newStart) setProjectStart(newStart);
   S.proj.end = document.getElementById('mp-end').value || '';
   closeM('proj');
   schedAll();
